@@ -5,7 +5,8 @@
 import { BETTER_NEED } from './config.js';
 import { getState } from './state.js';
 import { $ } from './ui.js';
-import { stageAt, companionDays, hourNow } from './growth.js';
+import { stageAt, companionDays } from './growth.js';
+import { hourNow } from './theme.js';
 
 export function gentleWhisper() {
   const state = getState();
