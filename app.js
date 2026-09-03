@@ -482,8 +482,8 @@
       const src = audioCtx.createBufferSource();
       src.buffer = buf; src.loop = true;
       const lp = audioCtx.createBiquadFilter();
-      lp.type = 'lowpass'; lp.frequency.value = 420;
-      const g = audioCtx.createGain(); g.gain.value = 0.05;
+      lp.type = 'lowpass'; lp.frequency.value = 520;
+      const g = audioCtx.createGain(); g.gain.value = 0.16;
       src.connect(lp).connect(g).connect(audioCtx.destination);
       src.start();
       noiseNodes.src = src; noiseNodes.gain = g;
@@ -494,6 +494,7 @@
     if (noiseNodes && noiseNodes.src) { try { noiseNodes.src.stop(); } catch(e){} noiseNodes = null; }
     soundOn = false;
   }
+
   function setMuted(m) {
     state.muted = m; save();
     const btn = $('muteBtn');
@@ -704,6 +705,14 @@
     setTheme();
     // 静音偏好恢复
     if (state.muted) setMuted(true);
+    // 自动出声：先尝试立即启动（部分浏览器允许）；若被自动播放策略拦截，
+    // 首次点击/触摸页面任意处即解锁（无需点🔊按钮）
+    if (!state.muted) {
+      ensureAudio();
+      const unlock = () => { ensureAudio(); document.removeEventListener('pointerdown', unlock); document.removeEventListener('keydown', unlock); };
+      document.addEventListener('pointerdown', unlock);
+      document.addEventListener('keydown', unlock);
+    }
     refreshAll();
     // 欢迎语
     const gr = $('greeting');
