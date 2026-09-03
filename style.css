@@ -310,6 +310,63 @@ body.theme-night .dock-btn {
 }
 .gold-note { color: var(--gold-deep); font-size: .8rem; margin-top: 12px; line-height: 1.6; }
 
+/* ---------- 声音面板 ---------- */
+.sound-card {
+  width: min(326px, 90vw);
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,251,248,.94));
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: var(--radius);
+  padding: 30px 24px 24px;
+  text-align: center;
+  box-shadow: 0 22px 60px rgba(46, 60, 56, .24);
+  transform: translateY(14px) scale(.985);
+  opacity: 0;
+  transition: transform .5s var(--ease-out), opacity .45s var(--ease-out);
+}
+.overlay.show .sound-card {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.sound-card h3 { margin: 0 0 6px; font-weight: 600; letter-spacing: 3px; color: var(--ink); }
+.sound-opts {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin: 18px 0 20px;
+}
+.sound-opt {
+  border: 1px solid #d5e2d6; background: #fff; color: var(--ink);
+  border-radius: 12px; padding: 11px 4px; font-size: .84rem;
+  cursor: pointer; transition: transform .16s var(--ease-out), box-shadow .2s, border-color .2s;
+  box-shadow: 0 1px 0 rgba(255,255,255,.8) inset, 0 2px 6px rgba(82,102,84,.06);
+}
+.sound-opt:active { transform: scale(.93); }
+.sound-opt.sel {
+  border-color: var(--green-2);
+  background: linear-gradient(180deg, #f0f7f0, #e4efe5);
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(120,160,130,.3), 0 2px 8px rgba(82,102,84,.1);
+}
+.vol-row { display: flex; align-items: center; gap: 12px; margin: 0 4px 18px; }
+.vol-label { font-size: .84rem; color: var(--ink-soft); flex: none; }
+.vol-slider {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 6px; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(90deg, var(--green-1), var(--green-2));
+  outline: none;
+}
+.vol-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--green-2);
+  box-shadow: 0 2px 6px rgba(82,102,84,.2);
+  cursor: pointer; transition: transform .15s var(--ease-out);
+}
+.vol-slider::-webkit-slider-thumb:active { transform: scale(1.15); }
+.vol-slider::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--green-2);
+  box-shadow: 0 2px 6px rgba(82,102,84,.2); cursor: pointer;
+}
+
 /* 感受历史回看 */
 .feel-history { margin-top: 14px; }
 .feel-history-title {

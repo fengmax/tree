@@ -124,6 +124,27 @@
     <button class="dock-btn" id="muteBtn" aria-label="声音开关"><span class="dock-ico" aria-hidden="true">🔊</span></button>
   </footer>
 
+  <!-- ===== 声音面板 ===== -->
+  <div class="overlay" id="soundOverlay" role="dialog" aria-modal="true" aria-label="声音设置" hidden>
+    <div class="sound-card">
+      <h3>声音</h3>
+      <p class="feel-sub">选一种陪你，或调调音量。</p>
+      <div class="sound-opts" id="soundOpts">
+        <button class="sound-opt" data-type="auto">🌿 自动</button>
+        <button class="sound-opt" data-type="wind">🌬️ 风声</button>
+        <button class="sound-opt" data-type="rain">🌧️ 雨声</button>
+        <button class="sound-opt" data-type="stream">💧 流水</button>
+        <button class="sound-opt" data-type="birds">🐦 鸟鸣</button>
+        <button class="sound-opt" data-type="crickets">🦗 虫鸣</button>
+      </div>
+      <div class="vol-row">
+        <span class="vol-label">音量</span>
+        <input type="range" id="volSlider" min="0" max="1" step="0.05" value="0.5" class="vol-slider" aria-label="音量">
+      </div>
+      <button class="ghost-btn" id="soundClose">好了</button>
+    </div>
+  </div>
+
   <!-- 常驻低语行 -->
   <p class="quiet-note" id="quietNote" aria-live="polite" hidden></p>
 </main>
