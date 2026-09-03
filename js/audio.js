@@ -29,7 +29,7 @@ function makeWind(ctx, gainNode) {
   src.buffer = getNoiseBuf(); src.loop = true;
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass'; lp.frequency.value = 520;
-  const g = ctx.createGain(); g.gain.value = 0.3;
+  const g = ctx.createGain(); g.gain.value = 0.15;
   src.connect(lp).connect(g).connect(gainNode);
   src.start();
   const lfo = ctx.createOscillator();
@@ -47,7 +47,7 @@ function makeRain(ctx, gainNode) {
   hp.type = 'highpass'; hp.frequency.value = 800;
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass'; lp.frequency.value = 4000;
-  const g = ctx.createGain(); g.gain.value = 0.25;
+  const g = ctx.createGain(); g.gain.value = 0.125;
   src.connect(hp).connect(lp).connect(g).connect(gainNode);
   src.start();
   return { src, gain: g };
@@ -60,7 +60,7 @@ function makeStream(ctx, gainNode) {
   bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 0.6;
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass'; lp.frequency.value = 2500;
-  const g = ctx.createGain(); g.gain.value = 0.22;
+  const g = ctx.createGain(); g.gain.value = 0.11;
   src.connect(bp).connect(lp).connect(g).connect(gainNode);
   src.start();
   const lfo = ctx.createOscillator();
@@ -85,7 +85,7 @@ function makeBirds(ctx, gainNode) {
     osc.frequency.exponentialRampToValueAtTime(baseF * 0.7, ctx.currentTime + 0.12);
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, ctx.currentTime);
-    env.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+    env.gain.linearRampToValueAtTime(0.09, ctx.currentTime + 0.02);
     env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
     osc.connect(env).connect(g);
     osc.start();
@@ -115,7 +115,7 @@ function makeCrickets(ctx, gainNode) {
       osc.frequency.value = 7500 + Math.random() * 1500;
       const env = ctx.createGain();
       env.gain.setValueAtTime(0, t);
-      env.gain.linearRampToValueAtTime(0.04, t + 0.01);
+      env.gain.linearRampToValueAtTime(0.02, t + 0.01);
       env.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
       osc.connect(env).connect(g);
       osc.start(t);
@@ -233,7 +233,7 @@ export function playWaterSound() {
     bp.frequency.exponentialRampToValueAtTime(400, t + 0.6);
     const g = audioCtx.createGain();
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.3 * getVolume(), t + 0.08);
+    g.gain.linearRampToValueAtTime(0.15 * getVolume(), t + 0.08);
     g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
     src.connect(bp).connect(g).connect(masterGain || audioCtx.destination);
     src.start(t);
@@ -249,7 +249,7 @@ export function playWaterSound() {
       osc.frequency.exponentialRampToValueAtTime(f * 0.5, dt + 0.08);
       const env = audioCtx.createGain();
       env.gain.setValueAtTime(0, dt);
-      env.gain.linearRampToValueAtTime(0.12 * getVolume(), dt + 0.005);
+      env.gain.linearRampToValueAtTime(0.06 * getVolume(), dt + 0.005);
       env.gain.exponentialRampToValueAtTime(0.001, dt + 0.1);
       osc.connect(env).connect(masterGain || audioCtx.destination);
       osc.start(dt);
@@ -268,7 +268,7 @@ export function startBreathAmbient() {
     const g = audioCtx.createGain(); g.gain.value = 0.0;
     osc.connect(g).connect(masterGain);
     osc.start();
-    g.gain.setTargetAtTime(0.06, audioCtx.currentTime, 1.5);
+    g.gain.setTargetAtTime(0.03, audioCtx.currentTime, 1.5);
     let stopped = false;
     function bell() {
       if (stopped || !audioCtx) return;
@@ -278,7 +278,7 @@ export function startBreathAmbient() {
       o.frequency.value = 880 + Math.random() * 440;
       const env = audioCtx.createGain();
       env.gain.setValueAtTime(0, t);
-      env.gain.linearRampToValueAtTime(0.03 * getVolume(), t + 0.02);
+      env.gain.linearRampToValueAtTime(0.015 * getVolume(), t + 0.02);
       env.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
       o.connect(env).connect(masterGain);
       o.start(t); o.stop(t + 1.6);
