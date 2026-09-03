@@ -113,15 +113,9 @@
     state.growth = Math.min(1.0, state.growth + added);
     if (state.growth >= 1) state.growth = 1;
 
-    // 记录陪伴天数（每天一次，跨结算去重）
-    // 统计 lastOpen..now 里出现了多少个新的“自然日”
-    const dayKeys = new Set();
-    for (let d = 0; d <= Math.floor(days); d++) {
-      const dayTs = state.lastOpen + d * DAY;
-      dayKeys.add(Math.floor(dayTs / DAY));
-    }
-    // 排除 bornAt 当天初始无意义？允许计数即可
-    state.companions = state.companions; // 保留字段，简单不计（避免过度机制）
+    // 记录陪伴天数：从 bornAt 到现在经过的自然日数
+    // 不用"每次打开+1"（防刷），而是真实天数差
+    state.companions = companionDays();
 
     state.lastOpen = now;
     save();
@@ -376,10 +370,23 @@
   function hourNow() { return new Date().getHours(); }
   function setTheme() {
     const h = hourNow();
+    const m = new Date().getMonth();  // 0-11
     const b = document.body;
-    if (h >= 6 && h < 17) b.className = 'theme-day';
-    else if (h >= 17 && h < 19) b.className = 'theme-dusk';
-    else b.className = 'theme-night';
+    // 时段主题
+    let theme;
+    if (h >= 6 && h < 17) theme = 'day';
+    else if (h >= 17 && h < 19) theme = 'dusk';
+    else theme = 'night';
+    b.className = 'theme-' + theme;
+
+    // 季节主题（叠加 class）
+    let season;
+    if (m >= 2 && m <= 4) season = 'spring';
+    else if (m >= 5 && m <= 7) season = 'summer';
+    else if (m >= 8 && m <= 10) season = 'autumn';
+    else season = 'winter';
+    b.classList.add('season-' + season);
+
     // 时段文案
     const w = $('timeOfDay');
     if (w) {
@@ -542,12 +549,13 @@
   }
 
   /* ---------------- 呼吸引导 ---------------- */
-  let breathStop = false, breathTimers = [];
+  let breathStop = false, breathTimers = [], breathCycles = 0;
   function openBreath() {
     showOverlay($('breathOverlay'));
     const word = $('breathWord');
     const tip = $('breathTip');
     const ring = $('breathRing');
+    breathCycles = 0;
     tip.textContent = '跟着圈，慢慢吸气 4 秒，再缓缓呼出 6 秒。';
     let phase = 'inhale';
     ring.className = 'breath-ring inhale';
@@ -563,13 +571,25 @@
       } else {
         ring.className = 'breath-ring exhale';
         word.textContent = '呼气';
-        let t2 = setTimeout(() => { phase = 'inhale'; cycle(); }, 6000);
+        let t2 = setTimeout(() => {
+          breathCycles++;
+          // 第 5 轮后温柔提示是否继续
+          if (breathCycles === 5) {
+            tip.textContent = '已陪伴你 5 次呼吸。继续或收好，都可以。';
+          }
+          phase = 'inhale';
+          cycle();
+        }, 6000);
         breathTimers.push(t2);
       }
     };
     cycle();
-    // 60 秒自动收起
-    const endT = setTimeout(() => closeBreath(), 60000);
+    // 120 秒后温和提示（不强制关闭）
+    const endT = setTimeout(() => {
+      if (!breathStop) {
+        tip.textContent = '够了吗？收好也行，继续也行。';
+      }
+    }, 120000);
     breathTimers.push(endT);
   }
   function closeBreath() {
@@ -583,13 +603,29 @@
   /* ---------------- 感受记录 ---------------- */
   function openFeel() {
     showOverlay($('feelOverlay'));
-    // 今日是否已记过“比昨天好一点”
+    // 今日是否已记过"比昨天好一点"
     renderMood();
+    renderFeelHistory();
   }
   function todayKey() { return new Date().toDateString(); }
   function lastBetterToday() {
     const tk = todayKey();
     return (state.hearts || []).some(t => new Date(t).toDateString() === tk);
+  }
+  function renderFeelHistory() {
+    const wrap = $('feelHistory');
+    const dots = $('feelDots');
+    if (!wrap || !dots) return;
+    const feels = state.feels || [];
+    if (feels.length === 0) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    // 最近 30 条，倒序
+    const recent = feels.slice(-30).reverse();
+    dots.innerHTML = recent.map(f => {
+      const d = new Date(f.t);
+      const dateStr = `${d.getMonth()+1}月${d.getDate()}日`;
+      return `<span class="feel-dot" style="--c:${f.color}" data-label="${f.label}" data-date="${dateStr}"></span>`;
+    }).join('');
   }
   function renderMood() {
     const bw = $('betterWrap');
@@ -651,10 +687,32 @@
     renderTree(state.growth);
     waterBtnVisual();
     gentleWhisper();
+    renderStageInfo();
     renderGoldCrownNote();
   }
+
+  function renderStageInfo() {
+    const el = $('stageInfo');
+    if (!el) return;
+    const stage = stageAt(state.growth);
+    const days = companionDays();
+    if (days <= 0 && state.growth < 0.001) {
+      el.textContent = '';
+      return;
+    }
+    let text = '';
+    if (days > 0) text += `第 ${days} 天 · `;
+    text += stage.label;
+    if (state.growth >= 1) text = `第 ${days} 天 · 树已成荫`;
+    el.textContent = text;
+  }
   function renderGoldCrownNote() {
-    // 若有金果叙事，在 greeting 下可增加一行小字（可选）
+    const goldN = Math.min(goldFruitIntended(), 3);
+    if (goldN <= 0) return;
+    const stageInfo = $('stageInfo');
+    if (!stageInfo) return;
+    const current = stageInfo.textContent;
+    stageInfo.textContent = current + ' · 金果 ' + goldN;
   }
 
   /* ---------------- 事件绑定 ---------------- */
@@ -723,8 +781,45 @@
   }
 
   function normalizeGreeting() {
-    // 根据时段打招呼，温和
-    return '你来了。';
+    const h = hourNow();
+    const stage = stageAt(state.growth);
+    const days = companionDays();
+
+    // 时段基底问候
+    let base;
+    if (h < 6) base = '夜深了，你来了。';
+    else if (h < 12) base = '早安，你来了。';
+    else if (h < 14) base = '正午好，你来了。';
+    else if (h < 17) base = '午后，你来了。';
+    else if (h < 19) base = '黄昏好，你来了。';
+    else base = '晚上好，你来了。';
+
+    // 成长阶段叠加
+    if (state.growth >= 1) {
+      base = '你来了，树已成荫。';
+    } else if (stage.key === 'fruit' || stage.key === 'canopy') {
+      base += ' 树结果了。';
+    } else if (stage.key === 'bloom') {
+      base += ' 树开花了。';
+    }
+
+    // 陪伴天数（仅特定里程碑轻声提）
+    if (days === 1) base = '第一天，你来了。';
+    else if (days === 7) base = '第七天，树记得你。';
+    else if (days === 30) base = '一个月了，谢谢你在这里。';
+    else if (days === 100) base = '一百天了，树和你一起。';
+    else if (days === 365) base = '一年了，这棵树因你而在。';
+
+    return base;
+  }
+
+  // 陪伴天数：从种下到现在经过的自然日数
+  function companionDays() {
+    const start = new Date(state.bornAt || Date.now());
+    const now = new Date();
+    start.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.floor((now - start) / DAY));
   }
 
   document.addEventListener('DOMContentLoaded', start);

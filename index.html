@@ -32,6 +32,7 @@
   <header class="top">
     <div class="greeting" id="greeting">你来了。</div>
     <div class="subline" id="timeOfDay" aria-live="polite"></div>
+    <div class="stage-info" id="stageInfo" aria-live="polite"></div>
   </header>
 
   <!-- 画面主体：树生长区 -->
@@ -151,10 +152,21 @@
       <button class="ghost-btn gold" id="betterBtn"><span aria-hidden="true">✦</span> 比昨天好一点</button>
     </div>
     <div class="gold-note" id="goldNote"></div>
+    <div class="feel-history" id="feelHistory" hidden>
+      <p class="feel-history-title">过去的日子</p>
+      <div class="feel-dots" id="feelDots"></div>
+    </div>
     <button class="ghost-btn" id="feelClose">记好了</button>
   </div>
 </div>
 
 <script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>
