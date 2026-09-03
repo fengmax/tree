@@ -51,6 +51,8 @@
   const BETTER_NEED = 7;
 
   const $ = (id) => document.getElementById(id);
+  // 尊重“减少动效”：动画只做渲染层降级，不影响任何功能
+  const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
   /* ---------------- 状态 ---------------- */
   let state = load();
@@ -212,9 +214,11 @@
     const soilY = 408;        // 土壤基线 y
     let html = '';
 
-    // 土壤
-    html += `<ellipse cx="${baseX}" cy="${soilY}" rx="92" ry="12" fill="#8a6a4e" opacity=".8"/>`;
-    html += `<ellipse cx="${baseX}" cy="${soilY}" rx="72" ry="9" fill="url(#soilgrad)" opacity=".85"/>`;
+    // —— 土壤：软影 + 受光土丘，几层渐变叠出更立体、更透气的水彩感 ——
+    html += `<ellipse cx="${baseX}" cy="${soilY + 3}" rx="108" ry="16" fill="#5d4a33" opacity=".20" filter="url(#soft)"/>`;
+    html += `<ellipse cx="${baseX}" cy="${soilY}" rx="90" ry="13" fill="#8a6a4e" opacity=".45"/>`;
+    html += `<ellipse cx="${baseX}" cy="${soilY - 1}" rx="76" ry="11" fill="url(#soilgrad)" opacity=".95"/>`;
+    html += `<ellipse cx="${baseX}" cy="${soilY - 3}" rx="54" ry="6" fill="url(#soilTop)" opacity=".85"/>`;
 
     // 参数化高度/宽度：g=0 由种子步进
     const trunkH = 20 + g * 165;   // 20..185
@@ -222,60 +226,75 @@
 
     if (g < 0.001) {
       // —— 种子阶段：土里一颗种子（轻声提醒）——
-      html += `<ellipse cx="${baseX}" cy="${soilY - 4}" rx="8" ry="4.4" fill="#b78a52"/>`;
-      html += `<ellipse cx="${baseX - .4}" cy="${soilY - 5.2}" rx="2.6" ry="4.4" fill="#c49a64" opacity=".9"/>`;
+      html += `<ellipse cx="${baseX}" cy="${soilY - 2}" rx="10" ry="2.8" fill="#5d4a33" opacity=".4"/>`;
+      html += `<ellipse cx="${baseX}" cy="${soilY - 5}" rx="8" ry="4.6" fill="#b78a52"/>`;
+      html += `<ellipse cx="${baseX - .5}" cy="${soilY - 6.2}" rx="2.7" ry="4.3" fill="#c9a26b" opacity=".95"/>`;
+      html += `<circle cx="${(baseX - 2.6).toFixed(1)}" cy="${(soilY - 6.6).toFixed(1)}" r="1.1" fill="#f6e9d2" opacity=".8"/>`;
       html += `<title>一颗种子，正在土里安静歇着。慢慢来，它会知道的。</title>`;
 
     } else if (g < 0.12) {
       // —— 发芽→小苗：短茎 + 子叶/初叶（高度随 g 起，0.12 时已 ~40）——
       const h = 4 + g * 55;              // 4..~11
       const tipY = soilY - h;
-      html += `<line x1="${baseX}" y1="${soilY}" x2="${baseX}" y2="${tipY}"`
+      html += `<line x1="${baseX}" y1="${soilY + 1}" x2="${baseX}" y2="${tipY}"`
              + ` stroke="#7f9c70" stroke-width="3" stroke-linecap="round"/>`;
-      // 子叶
-      html += `<ellipse cx="${baseX - 7}" cy="${tipY - 1}" rx="6" ry="9" fill="#b9d6a6" opacity=".95" transform="rotate(32 ${baseX - 7} ${tipY - 1})"/>`;
-      html += `<ellipse cx="${baseX + 7}" cy="${tipY - 1}" rx="6" ry="9" fill="#a8cba0" opacity=".95" transform="rotate(-32 ${baseX + 7} ${tipY - 1})"/>`;
+      html += `<ellipse cx="${baseX}" cy="${soilY - 1}" rx="${(3 + g * 6).toFixed(1)}" ry="1.6" fill="#6f9c70" opacity=".35"/>`;
+      // 两片初叶：羽化渐变的“水彩瓣”
+      html += `<ellipse cx="${baseX - 7}" cy="${tipY - 1}" rx="7" ry="10" fill="url(#leafG0)" opacity=".95" transform="rotate(30 ${baseX - 7} ${tipY - 1})"/>`;
+      html += `<ellipse cx="${baseX + 7}" cy="${tipY - 1}" rx="7" ry="10" fill="url(#leafG1)" opacity=".95" transform="rotate(-30 ${baseX + 7} ${tipY - 1})"/>`;
 
     } else {
       // —— 小苗→树荫：木主干 + 结疤 + 树冠 + (结果/金果) ——
       const topY = soilY - trunkH;
       const hr = Math.max(0, g - 0.12) / 0.88; // 归一化 0..1（从小苗起算）
 
-      // 1) 木主干（微弯）
-      html += `<path d="M${baseX - trunkW / 2},${soilY} C ${baseX - trunkW},${soilY - trunkH * .35} ${baseX + trunkW},${soilY - trunkH * .6} ${baseX},${topY}"
-               fill="none" stroke="#8a5f3b" stroke-width="${trunkW}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      // 1) 主干：一“晕”两“笔”叠色，边缘微微洇开、不呆板
+      const trunkP = (s) => `M${(baseX - s / 2).toFixed(1)},${soilY} C ${(baseX - s).toFixed(1)},${(soilY - trunkH * .35).toFixed(1)} ${(baseX + s).toFixed(1)},${(soilY - trunkH * .6).toFixed(1)} ${baseX},${topY}`;
+      html += `<path d="${trunkP(trunkW * 1.9)}" fill="none" stroke="#a97c50" stroke-width="${(trunkW * 1.45).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" opacity=".25"/>`;
+      html += `<path d="${trunkP(trunkW * 1.15)}" fill="none" stroke="#9a6c44" stroke-width="${(trunkW * 1.0).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>`;
+      html += `<path d="${trunkP(trunkW)}" fill="none" stroke="#8a5f3b" stroke-width="${(trunkW * .72).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>`;
+      // 受光细边（左上光源）
+      html += `<path d="${trunkP(trunkW * .4)}" fill="none" stroke="#c39a6e" stroke-width="${Math.max(1, trunkW * .14).toFixed(1)}" stroke-linecap="round" opacity=".5"/>`;
+      // 树脚坐根
+      html += `<ellipse cx="${baseX}" cy="${soilY - 1}" rx="${(trunkW * .85).toFixed(1)}" ry="${(trunkW * .3).toFixed(1)}" fill="#7c5636" opacity=".8"/>`;
 
-      // 2) 结疤：树干下 1/4 处；随成长渐被新皮包裹（透明度降、边缘柔和）
+      // 2) 结疤：颜色随成长由深木色渐向“新皮色”，被新树皮温柔包住
+      const wrap = Math.max(0, Math.min(1, hr));
       const scY = soilY - trunkH * 0.26;
-      const scarRx = trunkW * 0.30 + g * 1.2;
-      const scarAlpha = Math.max(.04, .40 - g * .26);
-      html += `<ellipse cx="${baseX}" cy="${scY}" rx="${scarRx.toFixed(1)}" ry="${(scarRx * 0.9).toFixed(1)}" fill="#5e3f28" opacity="${scarAlpha.toFixed(2)}"/>`;
+      const scarRx = Math.max(2.2, trunkW * .30 + g * .4);
+      const scarA = Math.max(.06, .40 - g * .24);
+      const ry = scarRx * .88;
+      const innerCol = mixHex('#5e3f28', '#c89a70', .18 + wrap * .82);
+      // 外圈：新皮愈合的柔晕
+      html += `<ellipse cx="${baseX}" cy="${scY}" rx="${(scarRx * 1.9).toFixed(1)}" ry="${(ry * 1.9).toFixed(1)}" fill="url(#scarRing)" opacity="${Math.min(.55, scarA + .12).toFixed(2)}"/>`;
+      // 旧痕本体
+      html += `<ellipse cx="${baseX}" cy="${scY}" rx="${scarRx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${innerCol}" opacity="${scarA.toFixed(2)}"/>`;
+      // 顶缘一道受光弧：像新皮从上方轻轻覆过来
+      html += `<path d="M${(baseX - scarRx).toFixed(1)},${(scY - 1).toFixed(1)} A ${scarRx.toFixed(1)} ${(ry * .72).toFixed(1)} 0 0 1 ${(baseX + scarRx).toFixed(1)},${(scY - 1).toFixed(1)}" fill="none" stroke="${mixHex('#d3ac86', '#e9cbaa', wrap)}" stroke-width="1.1" stroke-linecap="round" opacity="${Math.min(.9, scarA * 1.5).toFixed(2)}"/>`;
 
-      // 3) 疤旁的小花：几乎从一开始就静静开放（旧的痕迹旁有了新的生命）
-      //    g>=0.13 起即在疤侧开一朵小花，随成长更舒展
-      html += flowerHTMLAt(baseX + trunkW + 1.5, scY - 1, 5 + hr * 6, 1.0, g);
+      // 3) 疤旁的小花：旧的痕迹旁有了新的生命，越舒展越明朗（保持低饱和）
+      html += flowerHTMLAt(baseX + trunkW + 2.5, scY - 2, 5.5 + hr * 6, 1.0, g);
 
-      // 4) 树冠（多层水彩圆）：叶子数随 hr 增加
+      // 4) 树冠：底层淡染 + 羽化叶团，水彩“晕开”的层次
       const crownCy = topY - 6 - hr * 14;          // 树冠中心（略在顶梢上方）
       const crownR = 14 + hr * 34;                 // 树冠展开半径
-      const leafColor0 = '#9cc79b', leafA = '#b7d5ac', leafB = '#8ab08c';
-      // 外圈叶团（越多越茂）
-      const blobs = Math.round(5 + hr * 22);
+      // 底层淡染（树的呼吸气）
+      html += `<circle cx="${baseX}" cy="${(crownCy + 3).toFixed(1)}" r="${(crownR * 1.5).toFixed(1)}" fill="url(#leafG1)" opacity=".5"/>`;
+      const blobs = Math.round(6 + hr * 26);
       for (let i = 0; i < blobs; i++) {
         const a = (i / blobs) * Math.PI * 2 + 0.4;
-        const rr = crownR * (0.5 + 0.5 * (i % 3) * 0.22);
+        const rr = crownR * (0.5 + 0.5 * (i % 3) * 0.24);
         const bx = baseX + Math.cos(a) * rr;
         const by = crownCy + Math.sin(a) * rr * 0.8;
-        const s = crownR * (0.34 + ((i * 7) % 5) * 0.10);
-        const col = (i % 5 === 0) ? leafB : ((i % 3 === 0) ? leafA : leafColor0);
-        html += `<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${s.toFixed(1)}" fill="${col}" opacity=".85"/>`;
+        const s = crownR * (0.36 + ((i * 7) % 5) * 0.12);
+        const gid = (i % 5 === 0) ? 'url(#leafG2)' : ((i % 3 === 0) ? 'url(#leafG1)' : 'url(#leafG0)');
+        html += `<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${s.toFixed(1)}" fill="${gid}"/>`;
       }
-      // 顶冠圆
-      html += `<circle cx="${baseX}" cy="${(crownCy + 6).toFixed(1)}" r="${(crownR * 0.9).toFixed(1)}" fill="${leafColor0}" opacity=".92"/>`;
-      // 顶梢嫩芽点缀
-      html += `<circle cx="${baseX}" cy="${(crownCy - crownR * 0.55).toFixed(1)}" r="${(4 + hr * 9).toFixed(1)}" fill="${leafA}" opacity=".9"/>`;
+      // 顶冠 + 嫩芽
+      html += `<circle cx="${baseX}" cy="${(crownCy + 8).toFixed(1)}" r="${(crownR * 1.0).toFixed(1)}" fill="url(#leafG0)" opacity=".95"/>`;
+      html += `<circle cx="${baseX}" cy="${(crownCy - crownR * 0.5).toFixed(1)}" r="${(4 + hr * 10).toFixed(1)}" fill="url(#leafG1)"/>`;
 
-      // 5) 开花阶段显花苞/小花（可选点缀，穿插在叶间）——疤旁小花已足够温柔，这里轻点缀。
+      // 5) 开花阶段穿插的小花
       if (stageAt(g).key === 'bloom' || stageAt(g).key === 'fruit' || stageAt(g).key === 'canopy') {
         const nFl = Math.min(5, Math.floor((hr - .45) / .1) + 3);
         for (let i = 0; i < nFl; i++) {
@@ -284,42 +303,57 @@
         }
       }
 
-      // 6) 金果：betterCount 累计每满 7 次亮一颗（最多亮 3 颗叙事，摆在树冠前）
+      // 6) 金果：betterCount 每满 7 次亮一颗（最多 3 颗叙事），带一圈柔柔的光
       const goldN = Math.min(goldFruitIntended(), 3);
       if (goldN > 0 && hr > 0.1) {
         for (let k = 0; k < goldN; k++) {
           const tilt = -0.4 + k * 0.4;
           const gx = baseX + Math.cos(tilt) * crownR * 0.55;
           const gy = crownCy + 6 + Math.sin(tilt) * crownR * 0.5;
-          html += sphere(gx, gy, 5.4, '#e7c64f', '#fff6d8');
+          html += goldFruit(gx, gy, 4.8 + hr * .8);
         }
       }
     }
 
-    root.innerHTML = `
-      <radialGradient id="soilgrad" cx="50%" cy="40%" r="60%">
-        <stop offset="0%" stop-color="#9c7a55"/><stop offset="100%" stop-color="#6f5234"/>
-      </radialGradient>` + html;
+    root.innerHTML = html;
+
+    // 让整棵树对自己轻轻报个名字（无障碍：非纯视觉传达阶段）
+    const svg = $('treeSvg');
+    if (svg) svg.setAttribute('aria-label', stageAt(g).label);
   }
 
-  // 小圆形（带高光）的水彩果/花苞
-  function sphere(cx, cy, r, base, hl) {
-    let s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${base}" stroke="rgba(255,255,255,.6)" stroke-width="${(r * 0.22).toFixed(1)}"/>`;
-    s += `<circle cx="${(cx - r * 0.3).toFixed(1)}" cy="${(cy - r * 0.3).toFixed(1)}" r="${(r * 0.28).toFixed(1)}" fill="${hl}" opacity=".9"/>`;
+  // 颜色插值：把一种十六进制色柔和地过渡到另一种（如疤→新皮）
+  function mixHex(a, b, t) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ar = pa >> 16, ag = (pa >> 8) & 255, ab = pa & 255;
+    const br = pb >> 16, bg = (pb >> 8) & 255, bb = pb & 255;
+    const mr = Math.round(ar + (br - ar) * t);
+    const mg = Math.round(ag + (bg - ag) * t);
+    const mb = Math.round(ab + (bb - ab) * t);
+    return '#' + ((1 << 24) + (mr << 16) + (mg << 8) + mb).toString(16).slice(1);
+  }
+
+  // 金果：柔和光晕 + 果实 + 一点高光（发光但不刺眼）
+  function goldFruit(cx, cy, r) {
+    let s = `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r * 2).toFixed(1)}" fill="url(#goldHalo)"/>`;
+    s += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="url(#goldFruit)" stroke="rgba(255,255,255,.5)" stroke-width="1"/>`;
+    s += `<circle cx="${(cx - r * .32).toFixed(1)}" cy="${(cy - r * .34).toFixed(1)}" r="${(r * .3).toFixed(1)}" fill="#fdf4d2" opacity=".95"/>`;
     return s;
   }
 
-  // 一朵 5 瓣小花，带中心点；scale 随时间(hr)柔和放大
+  // 一朵 5 瓣小花：羽化花瓣 + 水彩花心 + 一点受光；随成长更舒展、颜色更明朗
   function flowerHTMLAt(cx, cy, r, alpha, g) {
     const petals = 5;
+    const warm = Math.max(0, Math.min(1, (g - .12) / .88));   // 越长大越“明亮一点”
     let out = `<g opacity="${alpha.toFixed(2)}">`;
     for (let i = 0; i < petals; i++) {
       const a = (i / petals) * Math.PI * 2 - Math.PI / 2;
-      const px = cx + Math.cos(a) * r * 0.72;
-      const py = cy + Math.sin(a) * r * 0.72;
-      out += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(r * 0.85).toFixed(1)}" fill="#f3cfc3" opacity=".8"/>`;
+      const px = cx + Math.cos(a) * r * .74;
+      const py = cy + Math.sin(a) * r * .74;
+      out += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(r * .92).toFixed(1)}" fill="${i % 2 ? 'url(#petalA)' : 'url(#petalB)'}"/>`;
     }
-    out += `<circle cx="${cx}" cy="${cy}" r="${(r * 0.5).toFixed(1)}" fill="#f7b98a"/>`;
+    out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r * .56).toFixed(1)}" fill="url(#heartG)"/>`;
+    out += `<circle cx="${(cx - r * .16).toFixed(1)}" cy="${(cy - r * .18).toFixed(1)}" r="${(r * .15).toFixed(1)}" fill="#fff" opacity="${(0.5 + warm * .3).toFixed(2)}"/>`;
     out += `</g>`;
     return out;
   }
@@ -366,7 +400,8 @@
     if (!particleCanvas) return;
     Pctx = particleCanvas.getContext('2d');
     resizeP();
-    window.addEventListener('resize', resizeP);
+    window.addEventListener('resize', () => { resizeP(); if (reducedMotion) drawStaticP(); });
+    if (reducedMotion) { drawStaticP(); return; }   // 尊重减少动效：画一帧安静的星野
     loopP();
   }
   function resizeP() {
@@ -375,33 +410,47 @@
     particleCanvas.height = innerHeight;
   }
   function isNight() { const h = hourNow(); return h >= 19 || h < 6; }
-  function loopP() {
+  // 静止一帧（减少动效 / 白天不空转）
+  function drawStaticP() {
+    if (!Pctx) return;
+    Pctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+    if (isNight()) drawStarField(Pctx, true);
+  }
+  // 后台标签页不空转；前台也压到 ~30fps，避免每帧重绘
+  let lastPFrame = 0;
+  function loopP(ts) {
     cancelAnimationFrame(PRAF);
-    Pctx && Pctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
-    if (isNight()) drawStarField(Pctx);
+    if (document.hidden) { PRAF = requestAnimationFrame(loopP); return; }
+    if (ts - lastPFrame >= 33) {
+      lastPFrame = ts;
+      if (!Pctx) return;
+      Pctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+      if (isNight()) drawStarField(Pctx);
+    }
     PRAF = requestAnimationFrame(loopP);
   }
-  function drawStarField(c) {
+  function drawStarField(c, stat) {
     const { width: w, height: h } = c.canvas;
     const ts = Date.now() / 1000;
     const n = 60;
     for (let i = 0; i < n; i++) {
       const x = (i * 97) % w;
       const y = (i * 41) % (h * 0.7);
-      const tw = 0.4 + 0.6 * Math.abs(Math.sin(ts * 0.8 + i * 7));
+      const tw = stat ? 0.62 : 0.4 + 0.6 * Math.abs(Math.sin(ts * 0.8 + i * 7));
       c.globalAlpha = tw * 0.9;
       c.fillStyle = '#f5f2d8';
       c.beginPath();
       c.arc(x, y, i % 5 === 0 ? 1.7 : 1.0, 0, Math.PI * 2);
       c.fill();
     }
-    // 萤火虫（缓慢飘）
+    // 萤火虫（缓慢飘；stat 时静止）
     const fm = 12;
     for (let i = 0; i < fm; i++) {
       const id = i * 53;
-      const x = ((id * 0.37) % w) + Math.sin(ts * 0.3 + i) * 22;
-      const y = (h * 0.35) + ((i * 67) % (h * 0.5)) + Math.cos(ts * 0.24 + i * 3) * 18;
-      const a = 0.18 + 0.5 * Math.abs(Math.sin(ts * (0.7 + (i % 3) * 0.2) + i));
+      const x = stat ? ((id * 0.37) % w) : (((id * 0.37) % w) + Math.sin(ts * 0.3 + i) * 22);
+      const y0 = (h * 0.35) + ((i * 67) % (h * 0.5));
+      const y = stat ? y0 : (y0 + Math.cos(ts * 0.24 + i * 3) * 18);
+      const a = stat ? 0.42 : 0.18 + 0.5 * Math.abs(Math.sin(ts * (0.7 + (i % 3) * 0.2) + i));
       c.globalAlpha = a;
       c.fillStyle = '#eaff9a';
       c.beginPath(); c.arc(x, y, 1.9, 0, Math.PI * 2); c.fill();
@@ -447,8 +496,12 @@
   }
   function setMuted(m) {
     state.muted = m; save();
-    if (m) { stopNoise(); audioCtx && audioCtx.suspend && audioCtx.suspend(); $('muteBtn').textContent = '🔇'; }
-    else { ensureAudio(); $('muteBtn').textContent = '🔊'; }
+    const btn = $('muteBtn');
+    const ico = btn && btn.querySelector('.dock-ico');
+    if (m) { stopNoise(); audioCtx && audioCtx.suspend && audioCtx.suspend(); }
+    else { ensureAudio(); }
+    if (ico) ico.textContent = m ? '🔇' : '🔊';
+    if (btn) btn.setAttribute('aria-pressed', m ? 'true' : 'false');
   }
 
   /* ---------------- Toast（轻提示） ---------------- */
@@ -458,6 +511,8 @@
     if (!el) {
       el = document.createElement('div');
       el.className = 'toast';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
       document.body.appendChild(el);
       toastEl = el;
     }
@@ -468,10 +523,27 @@
     toastTimers = [tt];
   }
 
+  /* ---------------- 浮层开合（只动视觉，保留 hidden 语义） ---------------- */
+  function showOverlay(el) {
+    el.hidden = false;
+    if (reducedMotion) { el.classList.add('show'); return; }
+    el.classList.remove('show');
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  }
+  function hideOverlay(el) {
+    el.classList.remove('show');
+    if (reducedMotion) { el.hidden = true; return; }
+    let finished = false;
+    const finish = () => { if (finished) return; finished = true; el.hidden = true; };
+    const onEnd = (e) => { if (e.target !== el) return; el.removeEventListener('transitionend', onEnd); finish(); };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(() => { el.removeEventListener('transitionend', onEnd); finish(); }, 600);
+  }
+
   /* ---------------- 呼吸引导 ---------------- */
   let breathStop = false, breathTimers = [];
   function openBreath() {
-    $('breathOverlay').hidden = false;
+    showOverlay($('breathOverlay'));
     const word = $('breathWord');
     const tip = $('breathTip');
     const ring = $('breathRing');
@@ -503,13 +575,13 @@
     breathStop = true;
     breathTimers.forEach(clearTimeout);
     breathTimers = [];
-    $('breathOverlay').hidden = true;
+    hideOverlay($('breathOverlay'));
     breathStop = false;
   }
 
   /* ---------------- 感受记录 ---------------- */
   function openFeel() {
-    $('feelOverlay').hidden = false;
+    showOverlay($('feelOverlay'));
     // 今日是否已记过“比昨天好一点”
     renderMood();
   }
@@ -550,7 +622,7 @@
     state.hearts.push(Date.now());
     save();
     trackGoldFlag();
-    $('feelOverlay').hidden = true;
+    hideOverlay($('feelOverlay'));
     refreshAll();
     toast('好，比昨天好一点，这就很好。');
   }
@@ -594,7 +666,7 @@
     $('breathBtn').addEventListener('click', openBreath);
     $('feelBtn').addEventListener('click', openFeel);
     $('breathClose').addEventListener('click', closeBreath);
-    $('feelClose').addEventListener('click', () => { $('feelOverlay').hidden = true; });
+    $('feelClose').addEventListener('click', () => { hideOverlay($('feelOverlay')); });
     $('muteBtn').addEventListener('click', () => {
       ensureAudio();
       setMuted(!state.muted);
@@ -614,7 +686,11 @@
     $('betterBtn').addEventListener('click', recordBetter);
     // 遮罩点空白关闭
     [$('breathOverlay'), $('feelOverlay')].forEach(ov => {
-      ov.addEventListener('click', (e) => { if (e.target === ov) ov.hidden = true; if (ov === $('breathOverlay')) closeBreath(); });
+      ov.addEventListener('click', (e) => {
+        if (e.target !== ov) return;
+        if (ov === $('breathOverlay')) closeBreath();
+        else hideOverlay(ov);
+      });
     });
     // 离开/隐藏自动保存
     document.addEventListener('visibilitychange', () => { if (document.hidden) { settleGrowth(); } else { refreshAll(); } });
@@ -627,7 +703,7 @@
     initParticles();
     setTheme();
     // 静音偏好恢复
-    if (state.muted) $('muteBtn').textContent = '🔇';
+    if (state.muted) setMuted(true);
     refreshAll();
     // 欢迎语
     const gr = $('greeting');
@@ -641,16 +717,6 @@
     // 根据时段打招呼，温和
     return '你来了。';
   }
-
-  // 注入 toast 样式
-  const _st = document.createElement('style');
-  _st.textContent = `.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);
-    background:rgba(255,255,255,.92);color:var(--ink);padding:10px 18px;border-radius:999px;
-    font-size:.85rem;box-shadow:0 8px 24px rgba(50,60,50,.18);opacity:0;transition:.35s ease;z-index:50;
-    max-width:80vw;pointer-events:none}
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-    body.watered .tree-svg{filter:drop-shadow(0 0 8px rgba(120,190,230,.35))} body .water-state{display:block}`;
-  document.head.appendChild(_st);
 
   document.addEventListener('DOMContentLoaded', start);
 })();

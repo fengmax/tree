@@ -1,0 +1,2149 @@
+[0m
+> build · deepseek-v4-flash
+[0m
+Thinking: Let me start by reading the TASK.md file.
+[0m→ [0mRead TASK.md
+Thinking: Let me explore the directory structure and read the three frontend files.
+[0m→ [0mRead index.html
+[0m
+[0m$ [0mls -la /tmp/oc-tree && git -C /tmp/oc-tree log --oneline -5 && git -C /tmp/oc-tree status
+total 96
+drwxrwxr-x  4 ubuntu ubuntu  4096 Sep  3 20:52 .
+drwxrwxrwt 28 root   root   24576 Sep  3 20:52 ..
+-rw-rw-r--  1 ubuntu ubuntu 26861 Sep  3 20:51 app.js
+drwxrwxr-x  8 ubuntu ubuntu  4096 Sep  3 20:52 .git
+drwxrwxr-x  2 ubuntu ubuntu  4096 Sep  3 20:51 icons
+-rw-rw-r--  1 ubuntu ubuntu  4234 Sep  3 20:51 index.html
+-rw-rw-r--  1 ubuntu ubuntu   550 Sep  3 20:51 manifest.webmanifest
+-rw-rw-r--  1 ubuntu ubuntu   200 Sep  3 20:52 oc_ui.log
+-rw-rw-r--  1 ubuntu ubuntu  6701 Sep  3 20:51 style.css
+-rw-rw-r--  1 ubuntu ubuntu  3487 Sep  3 20:51 TASK.md
+8b9341a 愈合之树 (Healing Tree): 参数化水彩风陪伴树,真实时间生长,防焦虑设计,支持PWA
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	TASK.md
+	oc_ui.log
+
+nothing added to commit but untracked files present (use "git add" to track)
+[0m
+[0m→ [0mRead style.css
+[0m→ [0mRead app.js
+Thinking: Now let me understand the whole codebase. There's also a manifest, icons directory. Let me check oc_ui.log just in case and the manifest, but per TASK we shouldn't touch them. Let me look at the current git remote & status.
+
+Let me now look more carefully at oc_ui.log to see what happened before.
+[0m→ [0mRead oc_ui.log
+[0m
+[0m$ [0mgit -C /tmp/oc-tree remote -v && git -C /tmp/oc-tree branch -a
+origin	git@github.com:fengmax/tree.git (fetch)
+origin	git@github.com:fengmax/tree.git (push)
+* main
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/main
+[0m
+Thinking: I have the full context. Let me plan the UI optimization. This is a "愈合之树" (healing tree) PWA. Constraints:
+
+1. Only UI optimization — visual quality, typography, layout, animation, color, responsive, accessibility, animation smoothness, overlap/occlusion, text hierarchy, spacing rhythm. Fine to tweak JS only for render/layout/animation (e.g., canopy color choice, animation functions, light accents), not functional results.
+2. Don't change data model, growth settling, watering cooldown, feel/gold logic, Stage thresholds, day/night detection.
+3. Simplified Chinese production copy.
+4. Keep "soft, low saturation watercolor, anti-anxiety" tone, no stimulation, no urging. Mobile-first.
+5. Respect prefers-reduced-motion.
+6. Deliverable: modify 3 files: index.html / style.css / app.js. Don't change file names or structure. No new deps / external resources.
+7. Verify: node --check app.js; element id alignment; referenced resources exist. Start local http.server and verify 200.
+8. Commit and push.
+
+Let me first write out the plan of what I'll change. The task says: "先简短说明你会改哪些 UI 文件里的哪些点，再动手改文件。" So I should state what I'll change in which files, then edit files.
+
+Let me design carefully.
+
+### index.html changes (minimal - structure preserved, add accessibility & semantic + aria):
+- greeting: 问候语 currently static "你来了。", plus timeOfDay. Add a `renderGoldCrownNote` — but that's app.js.
+- Add `aria-live="polite"` to timeOfDay / quietNote; add region landmarks; add aria-pressed to dock buttons maybe. Add `aria-hidden` on decorative icons within buttons.
+- The main svg has `<g id="treeRoot">`; add role="img" with aria-label to svg — but aria-label is overwritten each render by innerHTML with `<title>` only in seed stage. We can add a dynamic aria-label update in app.js on the svg root; we can set it in renderTree without touching structure.
+- Improve document lang & lang copy stay.
+
+Add a container for leaves hint? There's `.leave-hint` CSS but not used. Could keep.
+
+Potential index additions:
+- Put `<main>` aria hidden? no.
+- Add `aria-pressed` for mute button initially set in HTML? mute state known only at JS. We'll set in app.js. Add `aria-live="polite"` to `#timeOfDay` and `#quietNote` so whispers are announced gently; add `role="status"` to toast container is created in JS (role). 
+- Add `aria-hidden="true"` to emoji icons in buttons and wrap with `<span aria-hidden="true">`? Actually buttons already have labels and text. The emojis could be read by screen reader: "🌬️ 呼吸" would announce as emoji. Keep as is but could add aria-label already on buttons. For readability, might keep emoji hidden since there's aria-label. But visual text should remain visible; emoji is part of visual. To not confuse screen readers duplicate: the button has aria-label and visible text including emoji, so SR may read aria-label only, that's fine. Not an issue.
+
+For focus-visible styling: add CSS.
+
+Set `.overlay[hidden]{display:none}` already. 
+
+Also the water button small text is inside button - fine.
+
+### style.css changes (main bulk):
+
+1. CSS custom props / color tokens: Keep base palette but refine gradients and texture. Add softer background layering for day. Add `--font`, better scale. Introduce more watercolor stacking via box-shadows, radial gradients, pseudo elements.
+
+2. Body background: very subtle top soft light vignette.
+
+3. Improve greeting hierarchy & rhythm.
+
+4. Buttons: 
+   - `.water-btn`: softer pill, add inner highlight (top light), layered soft shadow; idle gentle breathing? The task mentions "呼吸环" for breath card. Maybe water button could gently glow when ready (no countdown/pressure). Add a subtle pulse on the pour droplet dot (only when available). Use reduced-motion respect.
+   - dock buttons: pill with soft gradient and press states; add subtle emoji color pop.
+   - Add focus-visible ring for accessibility with consistent soft color.
+
+5. Scene / tree: 
+   - `.tree-svg` drop-shadow soften; add `will-change` not needed for static.
+   - watering sway cubic-bezier + reduced-motion override.
+
+6. Overlays:
+   - soften backdrop (blur stronger, less dark), entrance/exit transitions: currently overlay uses animation fadeIn but hidden set instantly; add CSS classes for open/close animations? The JS toggles `hidden` attribute directly. We can add a transition on opacity by toggling a `.open` class — but JS would need modification in app.js for overlay show/hide (allowed: JS for animation, but careful about timing). Better approach: keep `hidden` semantics; when hidden false, animation plays via `animation`. For exit, add class-based fade-out: overlay gets `closing` class; listen animationend. Simpler: use `@starting-style` (new CSS) with transition on display? Browser support limited. 
+
+   I could restructure openBreath/closeBreath/openFeel to add classes, but must keep hidden attribute semantics for a11y. Approach: modify JS to add a `.show` class alongside hidden removal, and before hiding add `.hide` class then after animation sets hidden. Since animations are UI-only, this is acceptable and within the allowed tweaks.
+
+   But we must keep closeBreath clearing timers; we can adjust closeBreath to animate out. Let me implement a helper `openOverlay(el)` & `closeOverlay(el)` that toggles `.is-open` class and `hidden`. When hidden false → requestAnimationFrame add `.is-open`. When close → remove `.is-open`, then after transitionend set hidden. Overlay CSS uses opacity & visibility + pointer-events transitions. This is UI-layer only; the `hidden` semantics preserved. And `.overlay[hidden]{display:none}` stays but we need the element not to be display:none during close animation... So we set hidden only after animation completes. That's fine — click handlers on overlay remain but overlay is going invisible (pointer-events none). Should be fine.
+
+   Actually careful: `recordBetter` directly sets `$('feelOverlay').hidden = true;` — need to keep function result same (hides overlay). Replace with closeOverlay($('feelOverel')). Fine.
+
+   In bindEvents: overlay click to close sets hidden directly; replace with closeOverlay.
+
+   For breath close we call closeBreath which we update.
+
+7. Toast: make it settle bottom above dock, nicer curve with cubic-bezier, subtle scale. Since toast style is injected by JS string, we need to modify that injected CSS within app.js OR move to style.css? The toast styles are injected by JS to keep dynamic. We may add `.toast` base styling in style.css and keep JS injection minimal — but injecting duplicate would double apply; fine since same properties. Better: move full toast styling to style.css and change JS injection to only add `body.watered` glow & water-state display rules. Actually the injection currently also includes `body.watered` and `body .water-state{display:block}`. We can move all to style.css to keep single source. But modifying JS injection is allowed (style/animation). I'll move toast & watered styles to style.css and remove inline injection block. Wait, careful: if we remove injection, need those styles present: `.toast`, `.toast.show`, `body.watered .tree-svg`, and water-state always display block. water-state currently in style.css has `.water-state {...}` without display property; the JS added `body .water-state{display:block}` to force always visible (since <small> would otherwise... it's not hidden; default inline). Actually small default display inline. They wanted it displayed block maybe to override? The rule sets display:block. Let's incorporate into style.css directly. Good — clean-up: remove the whole injected style and put into style.css. This changes style location but keeps behavior.
+
+   Wait — is removal of JS-injected style "UI only"? Yes purely presentational. OK.
+
+   But keep an eye: The `.toast.show` uses transform translateX(-50%) translateY(0). We can refine.
+
+8. Particles: day light spots. Currently only night star field. The code draws only when night. Fine; keep logic. For performance the canvas redraw every frame full clear; could throttle to ~30fps via a time check in loopP? "canvas 粒子限帧" — the loop runs at 60fps always clearing & drawing 60 stars+12 fireflies only at night. We can add a simple FPS throttle: only requestAnimationFrame when needed... but if we throttle using setTimeout at e.g. 30fps we should still keep rAF? Simplest: inside loopP, draw only every other frame? Track timestamp; skip draws at >30fps, but still schedule rAF each frame cheaply (a no-op rAF is fine). Better: compute desired delay 1000/30 and use setTimeout recursion? rAF is smoother. We can do: keep rAF loop but only redraw when (now-last >= 33). This limits draw work; still callback runs each frame (cheap). That's acceptable performance tweak within UI.
+
+   Also honor prefers-reduced-motion by disabling particle twinkle (static) — we can keep but skip animation loop, draw once. We'll add.
+
+9. Add `prefers-reduced-motion` media query: disable sway, drop animation, breath ring scale transitions (instant?), overlay transitions -> instant, canvas star twinkle freeze, breath cycle maybe still functional but tip says no animation? We should keep functional but reduce visual: ring transitions off, no sway. Also particle loop stops.
+
+10. Safe-area & small screens: `.stage` padding already uses env safe areas. Add `min-height:100dvh` with fallback `100vh`. Add `@media (max-height:560px)` or small landscape to keep water button & dock visible, scene min-height adjust, greeting smaller, tree max-height adjust. Tree svg max-height:58dvh ensure not clipping. When tree grows tall, might overflow behind header? The `.scene` is flex:1 with min-height 300. Provide breathing. Add overflow guard: `.tree-svg { max-height: calc(58dvh) }` maybe fine.
+
+11. Accessibility contrast: `--ink-soft: #7a8b82` on `#eaf3ec` is low contrast ~? Let's compute later; maybe darken a bit for readability (#5f7168 ~4.5). Keep gentle though. Requirement "温柔但可读". We'll nudge toward AA for body text (subline/timeOfDay/quietNote). Mood text `#3c4a43` good.
+
+Gold note color `#a07f1f` on white-ish bg, contrast ~3.6 maybe borderline; acceptable for large? it's small text. Slightly darken to `#8a6a16`. Fine (still low-saturation gold). Water-state `--ink-soft` inherit improve.
+
+12. Watercolor feel of the tree: focus on SVG. Because we can modify renderTree html composition (JS but render only). Improvements:
+   - Soil: layered ellipses with radial gradient + a soft top rim highlight + a few tiny stones? keep light. Also a soft outer shadow ellipse under soil for grounding, and lighter topsoil lip.
+   - Trunk gradient along path not easy for path stroke; use two passes: a wider lighter under-stroke for hand painted edge + main trunk stroke. Could also add slight transparency layers with varying color to fake watercolor bleed.
+   - Canopy: currently circles w/ flat fills opacity .85. We can upgrade by adding per-blob radial gradient? radialGradient must be defined and referenced with url(#id). Using many unique gradient ids per blob cost. Alternative: layered translucent circles: each leaf circle gets a highlight smaller circle with lighter color and blurred? FeGaussianBlur on many circles is expensive. 
+
+   Careful with performance: filter blur on large groups can be heavy on mobile. But SVG group filter with feGaussianBlur stdDeviation ~1 could be acceptable if applied to a group once, not per element. Actually applying to the whole `<g id="treeRoot">` would blur everything including text/title no. Let's apply a soft edge by adding an extra low-opacity larger silhouette layer behind canopy: e.g., a single blurred ellipse silhouette in soft green with opacity .18 behind the foliage to mimic watercolor bleed — a single blurred shape is cheap (1 filter region) if we apply filter to that one ellipse only. That yields watercolor halo around the canopy without blurring whole tree each frame (tree renders once per refresh, not animated except sway rotation transform — transform on parent doesn't require re-raster filter? Filter applied to child re-renders when parent transforms. That could cost but sway is 1.4s few frames... It's fine probably, but avoid big blur area cost during sway. Actually browsers cache filter results; rotation of ancestor invalidates. Hmm.
+
+   Alternative cheaper watercolor trick without SVG filter: multiple slightly larger, low opacity, offset circles of varied green (transparency creates bleed). That's how current is. We can increase layers & soften with many overlapping translucent circles at varying hue and alpha (no filter). Slightly more circles but static render is fine; number modest.
+
+   But the current approach uses discrete circles, gives hard edges with softness only from many overlaps. A way to soften each blob: draw each blob as a radialGradient-filled circle fading to transparent at edge (feather). We can define a small set of reusable radialGradients (e.g., 3 greens) in defs and reference them via url(#..). Since colors differ by variant only (leafA/leafB/leafColor0), we need 3 gradients plus top crown gradient. Reuse across blobs referencing same gradient id, fine. A radialGradient white->transparent style: gradient uses same color at center to same color alpha 0 at edge => soft watercolor puff. That will dramatically soften edges => more watercolor.
+
+   Implementation: define defs:
+   ```
+   <radialGradient id="blobA"><stop 0% stop-color #b7d5ac stop-opacity .95/><stop 100% ... stop-opacity 0/></radialGradient>
+   ```
+   Then each leaf circle fill url(#blobA). But center color appears with alpha ramping; overlapping different gradients yields mixing. Need colors tuned: center strongly colored (like .85 alpha) fading to 0.
+
+   Simpler: create helper that emits `<radialGradient id="lga">`, `<lgb>`, `<lgc>`... Actually defs currently defined inline within innerHTML each render (soilgrad) and later removed? renderTree replaces root.innerHTML each time including a `<radialGradient>` inside root — gradients defined inside a <g> works in SVG? Yes, gradients may be defined anywhere in SVG document. But it recreates soilGrad each render (same id overwritten, references resolve to first). Might cause flicker historically none. Better to define defs at top-level svg defs (static in HTML) and keep IDs stable. We can add these gradients in index.html defs and let JS reference them. That doesn't change structure/filenames. index.html is allowed to change (it's one of 3 files). Good: put reusable gradients there.
+
+   Gradients to define (keep ids): 
+   - `leaf-g-1/2/3`: radial from leaf color (alpha ~0.95) to transparent.
+   - `soilgrad` could remain in defs of index.html too (instead of injected). Actually injected soilgrad duplicates id if also in defs — remove injected radial gradient from JS then; but soil ellipse fill uses url(#soilgrad). Keep the injection but we can move to defs & remove from innerHTML. Simplify: define in index.html defs a richer soil gradient set and reference. Then remove gradient injection from renderTree innerHTML, letting it only include shapes + html group. 
+
+   Careful: the JS builds `root.innerHTML = '<radialGradient ...>' + html;`. We can change to `root.innerHTML = html;` and place soilgrad in static defs. Good, render simplification.
+
+   For color selection JS (canopy color choice allowed): we could vary green palette slightly by mood/feels (store recent feels color and subtly tint a couple leaves). But that modifies function outcome appearance only; allowed but adds complexity; might be nice: crown top tints by last feel color at low alpha - "感受" reflected in tree softly. But keep minimal & safe. Could do: define leaf gradient center colors from a palette; incorporate a soft tint using most recent feel if exists. Tint blob colors: each blob color derived from base greens, but a fraction of blobs get feel tint color low alpha. Must not change shapes.
+
+   Keep it simpler to reduce risk.
+
+   - Scar healing transition: task: inner ring color transitions from deep wood → new-pink/new-bark color as g grows, outer edge soft. Implement: draw an outer soft ellipse (blurred visually by low opacity pale wood), inner ellipse fill interpolating color from `#5e3f28` (dark) toward `#b98d6f` (new bark/fresh, gentle) and a faint lighter "new bark wrapping" arc above it — as g grows, inner ellipse gets lighter & maybe slightly smaller covered by bark layers. Also add tiny highlight. The flower next to scar: more real flower: 5 petals gradient + center gradient with soft glow. flowerHTMLAt can produce petal radial gradient via a defs flower gradient? Many flowers: reuse a single `#petalGrad` and `#flowerHeart`. We can reference them. So we define:
+     - `petalgrad`: radial from `#f7ddd4` to `#f3cfc3` with slight outer transparent to soften.
+     Actually current color #f3cfc3 slightly muted coral pink. Keep low saturation.
+     - `heartgrad`: radial from lighter center `#fde7c8`... The heart gradient can hold a soft gold/pink light `#f7c9a8` to `#f2a37f` with low sat and a tiny white highlight dot? flower small (r ~5-11). A small highlight circle opacity .5 would give life.
+     Blossom opacity .9.
+     Also flower can gain small soft glow by drawing a larger faint radial halo behind (opacity .18) via the heart gradient? Might be heavier. Keep light.
+
+   Let me also verify gold fruit glow: sphere add a soft outer halo (radial gradient circle bigger, low alpha) and tiny star sparkle (4-point star path with low opacity) but "发光但不刺眼，不要霓虹感" - a soft halo ok, sparkle maybe small diamond white low alpha with gentle pulse? pulsing requires SMIL animate (fine inside svg, subtle). But respect reduced motion; SMIL animations ignore prefers-reduced-motion easily (CSS can't pause SMIL without JS). Simpler: static tiny highlight + soft halo, no SMIL pulse.
+
+   Also crown should get more layered feathering with gradients: many blobs.
+
+   Need performance: number of blobs currently max ~27+1+1 = ~29 circles plus others; if each is gradient-filled circle, still light. But feathering increases painted area large alpha but GPU fine. Ensure no blur filter per element. Maybe apply one subtle `feGaussianBlur` `#soft` filter currently defined & unused? In index.html defs there's filter id soft with stdDeviation 1.1 unused. Could repurpose for a soil "blur mound" soft under-shadow ellipse cheaply single use. Apply to soil shadow ellipse only.
+
+   Actually there is a subtle thing: applying CSS `filter: drop-shadow(...)` on `.tree-svg` already creates blur each frame during sway. Fine.
+
+   Tree "轻摇" already sway. Could also add "breathing" gentle scale to whole scene? Might be too much; skip.
+
+13. Air/breath ring: nicer gradient & inner glow & word; add smooth transition using cubic-bezier; add small breathing guide dots; tip text. Make ring bigger maybe 160. Keep 4/6 counts. Keep text.
+
+14. Emotion/mood buttons: currently square-ish rounded. Make pill soft with inner shadow and saturate text on selection; add focus ring. On select add check? maybe a tiny dot.
+
+15. Fix `user-scalable=no` in viewport is an accessibility problem; but that's in index.html meta - could remove to allow zoom (a11y). Removing `user-scalable=no, maximum-scale` improves accessibility; but must ensure layout still works. Task says don't change structure but meta content attribute is fine to adjust? It's UI/accessibility. I'll change to `width=device-width, initial-scale=1.0, viewport-fit=cover`. This improves accessibility (allows pinch zoom). Good improvement and aligns with 无障碍.
+
+16. prefers-reduced-motion: In CSS reduce all transform/opacity animation duration to minimal; disable drop/sway and particles. In JS, add media check `matchMedia('(prefers-reduced-motion: reduce)')` — particles: draw a static field once, no continuous rAF; breath ring transition instant (CSS handles via media query). Also gentleWhisper no animation.
+
+17. Add toast role and polite. In JS create toast with `role="status" aria-live="polite"`.
+
+18. Greeting time-of-day: `timeOfDay` id update in app.js setTheme; but greeting static "你来了。" plus maybe set time-based greeting in normalizeGreeting function currently returns constant "你来了。"? Interesting: The greeting always says "你来了。". We can keep copy but we shouldn't change meaning; leave copy same. Actually TASK says keep gentle; greeting "你来了。" fine.
+
+19. `renderGoldCrownNote` is empty with a comment. Could add gentle small line under greeting showing count of gold fruits if >0? It's narrative, safe UI-only, uses existing goldFruits count. Might be nice: when gold fruits >0 show "树梢已结出 N 颗金果 ✦"? However that's adding UI text; but "tree has goldFruits" narrative fine, no pressure. But changing could be considered extra. It's UI-only and copy benign. I'd implement a subtle sub under greeting when fruit stage, e.g., set quietNote? Actually renderGoldCrownNote has no use; implement gentle line: if goldFruitIntended()>0 show small sparkline under greeting. Keep minimal but improves 金果质感 narrative. It's optional; implement tastefully and guard: only show a quiet note appended to subline? The function called each refresh, can set timeOfDay? We shouldn't overwrite time-of-day. Could create element? Structure change limited—but adding a node dynamically is UI, okay but structure of HTML static must remain; dynamic extra DOM is presentational. But to be safe & minimal I will skip adding; instead keep function as is but maybe tiny. Actually avoid.
+
+20. Day particles: currently only night; the description in comment "白天光斑" but no day logic. Not needed; keep.
+
+21. Also improve visual: `body.theme-night` text ink colors might be too dark on dark bg (greeting uses --ink dark green). On night sky the text dark could be unreadable? Let me check: greeting color --ink #4a5a52; night background is dark navy (#141b34). The header sits over dark sky; text #4a5a52 would be nearly invisible! Let me verify design: stage z-index above sky; header at top over sky gradient night dark => dark text low contrast. This may be an existing bug worth fixing (readability/a11y). Add theme classes for text colors: define night/dusk text colors (light cream). Update `body.theme-night` for greeting & subline & dock? dock translucent white bg still light ok, water btn white ok. But greeting & subline text need light color at night. Also mood/breath overlays are light cards so fine.
+
+   Fix: add CSS: 
+   ```
+   body.theme-night .greeting { color:#eef2ea; }
+   body.theme-night .subline { color:#b9c4c0 }
+   ```
+   But JS sets body.className='theme-night' replacing classes - className set. So body gets exactly one theme class; good our selectors target it.
+
+   quietNote color grayish green #9db5a2 on night? appears below dock over dark => set night variant light.
+
+   whisper near bottom ok.
+
+   Also dusk: sky bottom area light green-ish #b6c4b2, top gold; dark ink text probably ok mid; but greeting top area is #e7cfa8 light, fine dark text. Good, but improve subtle.
+
+   Now confirm body background base `#eaf3ec` behind .sky gradient fixed covers; fine.
+
+22. Let's double check `.scene` min-height 300; for tall trees at g=1, trunk height ~185 in viewBox 440, scaled up; max-height 58dvh ensures fits but width max 340; On big screens width 100% up to 340 => scale ~340/320=1.06 => rendered trunk top at (440-? scaled)... viewBox coordinate 440 tall *1.06 ≈ 467px > 58dvh typical small. max-height 58dvh clamps to e.g. 500 on 800 tall -> scale ~1.07 fine. soilY 408 within.
+
+   On tiny landscape phones height small; could reduce max-height to 46dvh and min-height of scene smaller. We'll add media query for short screens: reduce tree to 46vh, greeting font smaller, margins tighter, and allow horizontal scroll none.
+
+   Actually careful tree could overlap water button on short screens; The tree svg bottom aligned near button; spacing: scene flex:1 then water button then dock. With min-height 300+ plus header ~70 + water ~70 + dock ~50 => ~560; on a 640 tall phone fine. Good.
+
+   During sway rotation transform-origin bottom. Good.
+
+23. Missing `body.watered` glow currently in injected CSS uses drop-shadow bluish .35 on .tree-svg; we'll keep.
+
+24. Add `.leave-hint` usage? Not used; skip.
+
+Let me also verify icon file referenced exists: icons/icon-192.png and manifest icons. Check quickly.
+
+Now about the injected CSS removal: The toast styles currently include water-state display block etc. We'll move to style.css and update JS to append role/aria-live and simpler. But note toast bottom:110px might overlap dock on small; adjust bottom to sit above dock: e.g., bottom: calc(env(safe-area-inset-bottom) + 150px)? Dock height ~ 50 + margin 14 + quietnote maybe 20. Actually quietNote below dock under stage padding bottom. Dock near bottom of stage. Toast bottom 110 may overlap dock visually (z50 overlays). Fine to show above? The task: better placement with breathing; set bottom ~ 150px to avoid dock; On small height could still collide but acceptable. We can position toast with transform translateY etc. Use `bottom:max(120px, calc(env(safe-area-inset-bottom) + 110px))`. env inside max? Can't nest env inside max with two args fine: `bottom: max(118px, env(safe-area-inset-bottom,0px));` env returns px.
+
+Hmm decide final: `.toast{ left:50%; bottom: max(96px, calc(env(safe-area-inset-bottom, 0px) + 84px)); transform: translate(-50%, 8px) scale(.98); ...}` show state translate(-50%,0) scale(1).
+
+Good.
+
+Let me also update `.dock` to include safe area bottom? Stage already pads. dock uses backdrop-filter blur fine. Improve dock buttons with subtle vertical gradient white translucent.
+
+Also quiet-note not hidden initially? gentleWhisper shows it. On small screens near bottom fine. Add `min-height` reserve? Actually it appears/disappears shifting layout each refresh: initially hidden then gentleWhisper sets textContent + hidden false; it stays until? refreshAll re-runs gentleWhisper always visible with text always. So always visible after load. fine no layout jump except initial.
+
+Improve top rhythm: greeting letter-spacing maybe large; adjust size clamp for small screens, add margin-bottom.
+
+Let me now define concrete CSS updates and app.js edits.
+
+Detailed change list:
+
+**index.html**
+1. viewport meta: drop `user-scalable=no`.
+2. defs: add reusable radial gradients for foliage/soil/flower + keep soft filter. Add `aria-label` on svg? renderTree sets innerHTML title; we can add role & label in JS per stage. Actually adding `<title>` inside root during seed only. For a11y, add `role="img"` and `aria-label` update in JS. We'll set static `role="img" aria-label="一棵正在安静生长的树"` in html and update in renderTree by stage label.
+3. small markup: add `<p id="stageNote" class="stage-note"></p>`? no structure change needed... skip. Actually maybe not.
+4. Buttons: give emoji spans aria-hidden? Buttons already aria-label; visible text with emoji duplicated? aria-label overrides content for a11y. Keep.
+5. water button inner: `<span class="pour" id="pour" aria-hidden="true"></span>` water pill.
+6. dock icon emoji spans `aria-hidden` to reduce noise but keep visible text: e.g., `<span class="dock-ico" aria-hidden="true">🌬️</span> 呼吸`. Actually that changes copy structure; acceptable & a11y better. Keep the visible chars same.
+7. Add `aria-live="polite"` to subline timeOfDay, quietNote. Add `role="region" aria-label="树木场景"` on scene? svg is img. fine skip.
+8. Maybe wrap mood name; fine.
+9. Add hidden skip? not needed.
+
+Wait "不改动文件名与结构" refers to file names and overall file structure presumably not breaking. Adding defs inside svg defs is ok. Editing button inner to add aria-hidden spans is fine.
+
+Let me also keep `#particles` canvas.
+
+**style.css** rewrite heavily but keep selectors referenced by JS: 
+- Classes to keep: `.sky`, `body.theme-day/.theme-dusk/.theme-night`, `.particles`, `.stage`, `.top`, `.greeting`, `.subline`, `.scene`, `.tree-svg`, watering animations, `.water-btn`, `.btn-inner`, `.pour`, `.water-state`, `.dock`, `.dock-btn`, `.quiet-note`, `.overlay`, `.breath-card`, `.feel-card`, `.breath-ring` + .inhale/.exhale, `.breath-tip`, `.feel-card h3`, `.feel-sub`, `.moods`, `.mood` + `.sel`, `.ghost-btn` + .gold, `.gold-note`, `.toast`, `.toast.show`, body.watered glow, `.overlay[hidden]`.
+- JS toggles classes: body.watering, .watering .pour, .watered, .show on toast, ring inhale/exhale, mood sel.
+
+Add `.overlay.is-open`? Let's design overlay show/hide with class approach. Simpler approach that preserves semantics & still smooth exit:
+
+Option A minimal but adds softness: On open, element transitions opacity from 0 with CSS animation fadeIn (already) 0.25s ease → cubic-bezier(.22,1,.36,1). For close, we need JS delay; else instant hide. Implement open/close helpers in JS using classes: `.overlay` base styles `opacity:0; pointer-events:none; visibility:hidden; transition: opacity .35s..., visibility 0s linear .35s;` and `.overlay.show{opacity:1; pointer-events:auto; visibility:visible; transition: opacity .35s..., visibility 0s;}` but keep `hidden` toggling for initial state? With visibility hidden + display still flex we can't use [hidden] to keep display none for layout? .overlay fixed so not in flow. If we keep using hidden attribute as "display none" we can't animate exit (display none kills transitions). Approach: set hidden=false at open, then add .show next frame; at close remove .show and when transition ends set hidden=true. Keep CSS `.overlay[hidden]{display:none}` to guard if hidden set without animation (like recordBetter). Then transitions animate only while not hidden.
+
+So JS helper:
+```
+function showOverlay(el){ el.classList.remove('show'); el.hidden=false; requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show'))); }
+```
+Hmm double rAF after removing hidden to allow transition from opacity0 base. Base CSS .overlay opacity:0, .overlay.show opacity:1.
+
+But initial CSS `.overlay` currently animated via keyframes; replace with transition approach:
+```
+.overlay{ opacity:0; visibility:hidden; pointer-events:none; transition: opacity .4s cubic-bezier(.22,1,.36,1), visibility 0s linear .4s; }
+.overlay.show{ opacity:1; visibility:visible; pointer-events:auto; transition: opacity .4s cubic-bezier(.22,1,.36,1); }
+```
+Wait, but content scaling pop: card `transform: translateY(10px) scale(.98)` -> show scale 1 via `.overlay.show .breath-card{...}`. transitions also for card.
+
+close:
+```
+function hideOverlay(el, done){
+  el.classList.remove('show');
+  const onEnd=()=>{ el.removeEventListener('transitionend',onEnd); el.hidden=true; done&&done(); };
+  // guard reduced motion immediate
+  if (prefersReduced) { el.hidden=true; done&&done(); return; }
+  el.addEventListener('transitionend', onEnd);
+  setTimeout(()=>{ el.removeEventListener('transitionend',onEnd); el.hidden=true; done&&done(); }, 460);
+}
+```
+Simplify: use transitionend with fallback timeout.
+
+Overlay click binding update: when closing from backdrop, if overlay is breath, need closeBreath to also stop timers; we'd call hideOverlay for feel; for breath we need to reset breath timer inside. Overlay backdrop currently: click handler checks target===ov and hides; also if breath call closeBreath. Let me unify: `ov.addEventListener('click', e=>{ if(e.target===ov){ if(ov.id==='breathOverlay') closeBreath(); else hideOverlay(ov); } })`.
+
+openBreath: call showOverlay($('breathOverlay')); openFeel: showOverlay(...). But original code sets hidden=false. We need the breath cycle to start; original openBreath also sets ring state. It might not actually wait show? Setting show class triggers CSS transition for ring scale? ring has transform transition 4s ease-in-out on class inhale/exhale with animation; plus the ring scale .78 transitions. But if the card not visible yet still CSS runs fine.
+
+Important: breath ring currently transitions between inhale/exhale classes, initial .inhale sets transform scale(1.0) from base none - no transition on open. But breathing: inhale(scale1) -> exhale(scale .78) transitions over... they set transition transform 4s ease-in-out so 4 seconds matches inhale, and exhale transition to smaller but class exhale applied immediately at start of exhale; the transition duration 4s not 6s. Hmm inhale 4s then exhale 6s; transition set to 4s would finish scale before 6s exhale ends => ring sits. Current transition 'transform 4s ease-in-out' both phases; during 6s exhale the ring animates first 4s then holds? Actually class applied at t0 exhale; target scale .78; transition duration 4s ease-in-out -> after 4s holds .78 for remaining 2s. Not bad but a bit imprecise.
+
+We can refine to more gentle, breathe with a more natural feel using a single keyframe animation matching 10s cycle (4 in 6 out) on a pseudo? That'd require one animation class with keyframes percentages: 0-40% scale big, 40-100% scale small? Let's design keyframes breathScale:
+```
+@keyframes breathCycle {
+  0%{ transform:scale(1) } 
+  40%{ transform: scale(.74)}
+  100%{ transform: scale(.74)}
+}
+```
+Then animation: 10s cubic? but easing across inhale/exhale need ease-in-out each segment not whole. Keyframes easing per segment not straightforward with single linear across whole with steps; we can use two separate animations toggled by class with duration 4s and 6s:
+```
+.breath-ring.inhale{ animation: inhaleR 4s ease-in-out forwards; }
+.breath-ring.exhale{ animation: exhaleR 6s ease-in-out forwards; }
+@keyframes inhaleR { from{ transform:scale(.74)} to{ transform:scale(1)} }
+@keyframes exhaleR { from{ transform:scale(1)} to{ transform:scale(.74)} }
+```
+JS alternates class each phase; restart animation each time by removing/adding class (JS currently sets className ring each phase = 'breath-ring inhale', removing previous causing animation restart). When class inhale re-applied on each inhale cycle it will re-run 4s. Good smooth 4s in /6s out separate easing. Need breath-ring base has no transform. Nice.
+
+Original ring class base includes radial-gradient backgrounds; inhale sets brighter bg. We can restyle.
+
+For reduced motion: turn off the animation: ring static with .inhale? Provide simple static, maybe word alternates without motion; acceptable. Media query: `.breath-ring{ animation: none !important; transition:none !important; }` and also body.watering anim off, .pour drop none, sway off, particle off (JS). Toast transition quick.
+
+Now style the ring: gradient gentle green; inner soft highlight; center word on a translucent white circle? Keep.
+
+**app.js** (UI-only JS):
+1. Remove injected style block (move CSS into style.css) & add toast role/aria-live.
+2. Add overlay helpers showOverlay/hideOverlay and use them in openBreath/closeBreath/openFeel & click close & recordBetter/feelClose. Keep same element ids. hideOverlay not change functionality except overlay no longer abrupt (animation) — acceptable UI.
+
+   Careful that recordBetter sets overlay hidden after saving then calls refreshAll & toast; we'll replace `$('feelOverlay').hidden = true` with hideOverlay(ov) (fire and forget). But hideOverlay on reduced motion hides immediately. Good.
+
+3. prefers-reduced-motion const; particle loop stop if reduced → draw static single frame & skip loop.
+4. Particles: throttle draw to ~30fps when running; skip redundant frames; but currently also draws when day nothing -> still clears each frame. Could avoid scheduling when day (no content) simply clear once & idle; but theme changes only per open hour; we can: in loopP, if !night → clear & schedule next rAF at low cadence or no loop until next minute theme check? Complexity risk. Simpler: throttle to 30fps for all draws; harmless. But we can do better: only run rAF loop while night; on theme set re-run. Keep safe: keep rAF but only repaint if document visible? visibilitychange triggers refreshAll only. We'll throttle to 30fps and stop when tab hidden (document.hidden). Add document visibility listener already exists; we can within loopP bail if document.hidden (skip draw and just rAF again cheap). Minor.
+
+   Implement: 
+   ```
+   let lastP=0;
+   function loopP(t){
+     cancelAnimationFrame(PRAF);
+     if(document.hidden){ PRAF=requestAnimationFrame(loopP); return; }
+     if(!isNight()){ // idle slow clear
+       if(needsClear){ clear } ; schedule next at ~1fps
+     }
+   }
+   ```
+   Simpler keep: clear only when night? During day we currently still clear each frame (waste). Let's rewrite loopP:
+   ```
+   function loopP(){
+     cancelAnimationFrame(PRAF);
+     const now=performance.now();
+     if(!night){ Pctx&&clearRect...; PRAF=requestAnimationFrame(loopP); return; }  // each frame clear though...
+   ```
+   Eh day = clear each frame only cheap. To limit work, use time throttle:
+   ```
+   function loopP(ts){
+     cancelAnimationFrame(PRAF);
+     if(document.hidden){ PRAF=requestAnimationFrame(loopP); return; }
+     if(ts - lastP >= 33){ // ~30fps
+        lastP=ts;
+        Pctx && clearRect(0,0,w,h);
+        if(isNight()) drawStarField(Pctx);
+     }
+     PRAF=requestAnimationFrame(loopP);
+   }
+   ```
+   This reduces to 30fps max redraw. reduced-motion: draw static once and stop (cancel rAF). We'll do that.
+
+5. renderTree g param — actual currently param `g`. Provide nicer:
+   - soil multi-layer with defs gradient soil; draw outer ground shadow ellipse blur? Add simple two shadow ellipses under soil (one soft dark wide very low alpha using gradient fading out). Keep cheap.
+   - Put leaf blobs using gradient fills for soft edges. Implementation inside loop: fill `url(#blobLG)` etc but per blob we might vary color by selecting one of the 3 gradient ids based on index parity. Then add second under-layer of larger blobs lower alpha for halo variety. Keep total circles ~ < 70 fine.
+     We could keep existing circle count (28 blobs) but give each gradient fill referencing id and also draw a "bleed" behind (larger, alpha .12) using same grad for color separation. Actually feather edge gradient already handles soften. Add ~ extra 8 pale wash circles behind canopy silhouette.
+   - canopy top highlight.
+   - trunk: draw wide soft under-path slightly translucent lighter then main path darker center-line to give hand-painted shading. E.g., stroke path twice: first `#b98a5f` width trunkW*1.5 opacity .35 (wash), second `#8a5f3b` width trunkW*0.82 opacity .95 overlay, plus thin highlight line left? we can skip.
+   - scar: layered:
+     ```
+     const wrapped = Math.max(0, Math.min(1, (g-0.12)/0.88)); // age after sapling
+     outer soft patch: ellipse rx+2 alpha low color "#9c7a55"
+     inner: color mix deep wood to new-bark. Mix hex lerp color from '#5e3f28' to '#c0946f' by t = hr maybe up to .55 then stays; alpha higher in young, plus new bark arcs above covering with trunk color overlay as trunkW grows? Simplest: implement mixColor(c1,c2,t).
+     ```
+     Let's do function `mixHex(a,b,t)` returns hex. Then scar color = mix between deepBrown and newBarkColor `#bf8f6b`. Plus to appear wrapped: add two thin horizontal bark arcs slightly lighter (#9a6b45 & #b98a63) partially overlapping scar near soil? Hmm.
+     Simpler visually believable "被温柔包裹": scar ellipse + slightly smaller inner ellipse in fresher pale tone + the trunk path drawn after with linecap round covers top edge? Since trunk drawn before scar, scar sits over trunk. To emulate bark grown over edges, draw a thin outline ring of trunk color with feather around scar then scar interior. So we draw an ellipse ring: `fill="none" stroke=<trunkcolor lighter> stroke-width 1.5 opacity .8` slightly bigger radius, then interior gradient.
+     Actually ring of trunk-ish color around a lighter center gives sunken-healed look. Keep gentle.
+
+   - flowerHTMLAt new version: five petals each a small radial gradient circle via petalGrad with slight per-petal rotation offset; center heart circle gradient + tiny center dot; plus soft halo radial low alpha behind entire flower when r>...? maybe skip halo for perf since many flowers. Add subtle: petal colors alternate very slightly for watercolor depth: two petal gradient ids petalA/petalB. And heartGrad with soft warm.
+
+     Flower function currently uses solid fills & params alpha g. We'll keep signature; implement better visuals referencing defs ids (created in index). Also slight scale by g uses r computed by callers already with hr; flowerHTMLAt receives g to maybe brighten center.
+
+   - gold sphere halo: add in sphere? gold uses sphere(gx,gy,r,'#e7c64f','#fff6d8'). Create separate goldFruit function with soft outer radial halo circle (radius r*1.9 fill url(#goldHalo) opacity ~.8) then fruit. Keep gold tone warm low sat: base maybe '#e3c25a'. Keep no neon.
+
+     We can slightly reduce alpha of white stroke.
+
+   - Seed stage: soil mound more refined with seed highlight; tiny sprout maybe existing. Keep plus tiny shadow under seed.
+
+   - Sapling: stem with small leaf nice.
+
+6. Since defs now in index.html, remove gradient injection in innerHTML; remove now-unused? keep `<title>` for seed maybe keep.
+
+   But renderTree innerHTML root builds soil etc; we currently inject `<radialGradient id="soilgrad">` inside root each render. If we define soilgrad static in index defs AND still inject duplicates each render it's wasteful & could warn duplicate. Remove injection and just output html; ensure defs exist in index for soilgrad & others referenced.
+
+   Verify id alignment in static check.
+
+7. tree aria: set svg aria-label per stage label maybe: after render choose label text; svg has static aria-label; update when stage changes? renderTree can set `document.getElementById('treeSvg').setAttribute('aria-label', stageLabel + '阶段...')`. Keep gentle.
+
+8. Ensure console no crash; node --check.
+
+9. Add stage label element? There's no visible stage text currently (only title tag seed). Might be nice to display stage name under tree? Could clutter. Skip.
+
+Let me confirm manifest and icons exist.
+
+Let me now check contrast ratios quickly via node maybe compute later. Let me get palette decided.
+
+Let me settle new palette/tokens and then write.
+
+Keep original root vars but adjust some:
+```
+--green-1:#c7dfc9; --green-2:#94b49a; --green-3:#6f946f;
+--cream:#f9f6ee; --blue-1:#d9e5f2; --ink:#42544c (slightly darken for contrast on light cream); 
+--ink-soft:#62736a (darker than before 7a8b82 ~ old) for a11y ~ 4.6 on cream? compute: #62736a lum? approximate greyish ~ enough.
+--trunk:#8a5f3b;
+--gold:#d8b25c;
+--nightText etc.
+```
+Let's compute contrast roughly with a small node script for chosen pairs to ensure gentle but readable: aim body text on card white >=4.5. On colored sky maybe >= 3 for large.
+
+Let me now check: ink #42544c vs white: relative luminance compute quickly in node.
+
+Let me plan to run a node one-liner for contrast of a few.
+
+Now write plan summary to user (short), then edit.
+
+Given size, I'll implement:
+
+- index.html edits.
+- style.css full rewrite (large) but keep structure comments.
+- app.js targeted edits (overlay helpers, toast injection removal & aria, particles throttle + reduced motion, renderTree enhancements + helpers mixHex & gradient fills, sphere gold halo, flower improve, aria label, sway/ease maybe, ring class changes remain but rely CSS keyframes with inhale/exhale anims). Since ring classes already inhale/exhale set by JS, but JS sets word text & ring.className. Keep.
+
+But careful: The breath ring CSS transitions removed; we use keyframes on .inhale and .exhale; JS sets class each phase; we need initial ring start at inhale scale .74→? Actually when overlay opens class inhale animation runs scale .74→1 over 4s - but initial before class... it starts inhale; animation from .74 to 1 nice breathing in. Good.
+
+Wait JS: phase='inhale'; ring.className='breath-ring inhale'; word '吸气'; then after 4s sets exhale; keyframes define inhaleR 4s forwards to scale(1). InhaleR from {transform:scale(.72)} to {transform:scale(1)}; exhaleR from {transform:scale(1)} to {transform:scale(.72)} 6s forwards. During running for 4s smooth ease-in-out. Add slight inner shadow and glowy ring.
+
+reduced-motion: animate none; both classes static scale none but visible. word still toggles every 4/6s via JS timer—that's ok text change gentle.
+
+Now check timing: inhale 4s; on phase change class swapped instantly to exhale animation 6s; new animation starts at scale(1) (since toggled at that moment ring was at scale(1) after 4s inhale). Consistent.
+
+Now let me also add CSS ease curves to buttons/overlays.
+
+Time to verify overall plan to user. Provide brief bullet of which files/areas.
+
+Then do the edits.
+
+Let me also confirm current overflow: `.scene` min-height 300 with flex 1; but on tall trees and sway, might clip horizontally? viewBox width 320; preserveAspectRatio xMidYMax meet; sway rotate might push sides; overflow visible set. body overflow-x hidden already; fine.
+
+Let me check icon exists.
+
+Let me write edits now. Also run small contrast computations.
+
+First a quick bash: list icons, manifest content, and run node contrast compute.
+[0m$ [0mls -R /tmp/oc-tree/icons && cat /tmp/oc-tree/manifest.webmanifest && node -e '
+function lum(hex){let c=hex.replace("#","");if(c.length===3)c=c.split("").map(x=>x+x).join("");let [r,g,b]=[0,2,4].map(i=>parseInt(c.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*r+.7152*g+.0722*b;}
+function cr(a,b){let l1=lum(a),l2=lum(b);return (Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05);}
+console.log("ink42544c/white",cr("#42544c","#ffffff").toFixed(2));
+console.log("inkSoft62736a/#eaf3ec",cr("#62736a","#eaf3ec").toFixed(2));
+console.log("inkSoft62736a/white",cr("#62736a","#ffffff").toFixed(2));
+console.log("gold8a6a16/white",cr("#8a6a16","#ffffff").toFixed(2));
+console.log("mood3c4a43/#f6f6f6",cr("#3c4a43","#f9f6ee").toFixed(2));
+console.log("oldInkSoft7a8b82/#eaf3ec",cr("#7a8b82","#eaf3ec").toFixed(2));
+console.log("nightText eef2ea/#141b34",cr("#eef2ea","#141b34").toFixed(2));
+console.log("creamtext dfe6e0/#1e2a4a",cr("#dfe6e0","#1e2a4a").toFixed(2));
+console.log("bluetext a9bcc6/#141b34",cr("#a9bcc6","#141b34").toFixed(2));
+'
+
+/tmp/oc-tree/icons:
+icon-192.png
+icon-512.png
+{
+  "name": "愈合之树",
+  "short_name": "愈合之树",
+  "description": "一棵只陪你不催促的树。按真实时间慢慢生长。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eaf3ec",
+  "theme_color": "#eaf3ec",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+ink42544c/white 8.06
+inkSoft62736a/#eaf3ec 4.43
+inkSoft62736a/white 5.02
+gold8a6a16/white 5.06
+mood3c4a43/#f6f6f6 8.63
+oldInkSoft7a8b82/#eaf3ec 3.17
+nightText eef2ea/#141b34 14.99
+creamtext dfe6e0/#1e2a4a 11.13
+bluetext a9bcc6/#141b34 8.65
+[0m
+Plan first, then edits. Let me verify referenced assets and compute a few gentle-but-readable contrast pairs.
+Thinking: Good. Now let me tell the user the plan briefly, then implement.
+
+Files & touch points:
+- index.html: viewport (allow zoom), richer SVG `<defs>` (feather gradients + soil/flower/gold halos), aria/roles, aria-live, aria-hidden decorative emoji, aria-label on svg.
+- style.css: visual overhaul — tokens/contrast, layered watercolor textures, tree/soil shadows, breathing/enter-exit curves, breathing ring keyframes, night-mode text colors, reduced-motion, focus-visible, safe-area & short-screen media, toast/overlay motion.
+- app.js: render-only — overlay show/hide animation helpers, remove injected style (move to css) + toast aria, particles throttle/reduced-motion, richer renderTree (gradient soft blobs, layered soil, healed scar color mix, prettier flowers, soft gold glow), tree aria-label by stage.
+
+No logic/number/data changes.
+
+Then implement.
+
+Let me write the index.html edits first.
+已读 TASK.md 与三个文件。计划（只动 `index.html` / `style.css` / `app.js`，不动 manifest/icons/文件名，不改任何 growth/冷却/数据逻辑）：
+
+**index.html** — 无障碍与质感底座
+- viewport 去掉 `user-scalable=no`（允许缩放=可访问性），保留 safe-area
+- `<defs>` 扩充静态水彩渐变（叶团羽化渐变、土壤渐变、花瓣/花心、金果柔光、疤上新皮柔边），JS 只引用不再重复注入
+- `#treeSvg` 加 `role="img"` + 可更新 `aria-label`；时段/耳语行加 `aria-live`；按钮内装饰 emoji 标 `aria-hidden`
+
+**style.css** — 排版/动效/配色/无障碍主体
+- 调色板：正文墨色加深保 AA 对比，夜晚/黄昏文字提亮；细调背景天幕层次
+- 按钮/dock：柔和上下渐变+压感、`cubic-bezier`、`focus-visible` 可见环、更清晰的层级与留白
+- 呼吸环改用 4s/6s 独立 `ease-in-out` 关键帧，进出更自然
+- 遮罩弹层改为 opacity/visibility 过渡的柔和入场+出场；toast 移至 CSS 并置于 dock 上方、柔和弹出
+- `prefers-reduced-motion` 全局降级；小屏/矮屏/safe-area 媒体查询防裁切
+
+**app.js**（仅渲染/布局/动效层）— 树更水彩
+- 移除 JS 注入样式（迁入 style.css）；toast 加 `role="status"`
+- overlay 打开/关闭动画助手（保留 `hidden` 语义）
+- `renderTree`：叶团改羽化径向渐变+底层淡染、主干手绘叠色描边、土壤分层+柔影、疤随 g 由深木色渐向新皮色并加柔边包覆、疤旁小花真花瓣渐变+花心、金果加柔和光晕
+- 粒子限帧 ~30fps、`prefers-reduced-motion`/后台不空转
+- 不改任何数值/逻辑/事件名/localStorage
+
+开始改文件。
+[0m← [0mEdit index.html
+Index: /tmp/oc-tree/index.html
+===================================================================
+--- /tmp/oc-tree/index.html
++++ /tmp/oc-tree/index.html
+@@ -1,9 +1,9 @@
+ <!DOCTYPE html>
+ <html lang="zh-CN">
+ <head>
+ <meta charset="UTF-8" />
+-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
++<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+ <title>愈合之树</title>
+ <meta name="description" content="一棵只陪你不催促的树。它按真实时间慢慢生长，陪你把身体与自己慢慢修复。" />
+ <meta name="theme-color" content="#eaf3ec" />
+ <link rel="manifest" href="manifest.webmanifest" />
+
+[0m
+Thinking: Now update header/subline aria-live, svg defs & role, and markup for decorative emoji aria-hidden. Let me edit the header block.
+[0m← [0mEdit index.html
+Index: /tmp/oc-tree/index.html
+===================================================================
+--- /tmp/oc-tree/index.html
++++ /tmp/oc-tree/index.html
+@@ -29,48 +29,103 @@
+ 
+ <main class="stage" id="stage">
+   <!-- 顶部：问候 + 结疤旁的花 -->
+   <header class="top">
+-    <div class="greeting" id="greeting">你来了。</div>
+-    <div class="subline" id="timeOfDay"></div>
++    <div class="greeting" id="greeting" aria-hidden="false">你来了。</div>
++    <div class="subline" id="timeOfDay" aria-live="polite"></div>
+   </header>
+ 
+   <!-- 画面主体：树生长区 -->
+-  <section class="scene">
++  <section class="scene" aria-label="树的生长场景">
+     <!-- 用内联 SVG 承载参数化生长的树 -->
+-    <svg id="treeSvg" class="tree-svg" viewBox="0 0 320 440" preserveAspectRatio="xMidYMax meet">
++    <svg id="treeSvg" class="tree-svg" viewBox="0 0 320 440" preserveAspectRatio="xMidYMax meet"
++         role="img" aria-label="一棵正在土里歇着的种子">
+       <defs>
+-        <radialGradient id="trunkGrad" cx="50%" cy="50%" r="65%">
+-          <stop offset="0%" stop-color="#a97c50"/>
+-          <stop offset="100%" stop-color="#8a5f3b"/>
++        <!-- 土壤：顶部受光、边缘更深的柔和渐变 -->
++        <radialGradient id="soilgrad" cx="50%" cy="38%" r="65%">
++          <stop offset="0%" stop-color="#9c7a55"/>
++          <stop offset="72%" stop-color="#7c5b38"/>
++          <stop offset="100%" stop-color="#6a4a2c"/>
+         </radialGradient>
++        <radialGradient id="soilTop" cx="50%" cy="42%" r="55%">
++          <stop offset="0%" stop-color="#b08a5e" stop-opacity=".9"/>
++          <stop offset="100%" stop-color="#b08a5e" stop-opacity="0"/>
++        </radialGradient>
++        <!-- 叶团：中心浓郁、边缘渐隐的水彩“羽化”渐变 -->
++        <radialGradient id="leafG0" cx="42%" cy="38%" r="75%">
++          <stop offset="0%" stop-color="#cfe5c4" stop-opacity=".95"/>
++          <stop offset="55%" stop-color="#a6c9a0" stop-opacity=".55"/>
++          <stop offset="100%" stop-color="#8ab08c" stop-opacity="0"/>
++        </radialGradient>
++        <radialGradient id="leafG1" cx="42%" cy="38%" r="75%">
++          <stop offset="0%" stop-color="#e0eed8" stop-opacity=".95"/>
++          <stop offset="55%" stop-color="#bcd8ae" stop-opacity=".5"/>
++          <stop offset="100%" stop-color="#9fbd96" stop-opacity="0"/>
++        </radialGradient>
++        <radialGradient id="leafG2" cx="42%" cy="38%" r="75%">
++          <stop offset="0%" stop-color="#b6d3ab" stop-opacity=".95"/>
++          <stop offset="55%" stop-color="#8fb092" stop-opacity=".55"/>
++          <stop offset="100%" stop-color="#76977e" stop-opacity="0"/>
++        </radialGradient>
++        <!-- 小花：五片花瓣与水彩花心 -->
++        <radialGradient id="petalA" cx="42%" cy="35%" r="70%">
++          <stop offset="0%" stop-color="#fae6de" stop-opacity=".95"/>
++          <stop offset="60%" stop-color="#f3d3c6" stop-opacity=".6"/>
++          <stop offset="100%" stop-color="#ecc0b3" stop-opacity="0"/>
++        </radialGradient>
++        <radialGradient id="petalB" cx="42%" cy="35%" r="70%">
++          <stop offset="0%" stop-color="#f8e0d8" stop-opacity=".9"/>
++          <stop offset="60%" stop-color="#efc6bb" stop-opacity=".55"/>
++          <stop offset="100%" stop-color="#e8b7aa" stop-opacity="0"/>
++        </radialGradient>
++        <radialGradient id="heartG" cx="45%" cy="38%" r="65%">
++          <stop offset="0%" stop-color="#f9d9a8"/>
++          <stop offset="55%" stop-color="#f3b987"/>
++          <stop offset="100%" stop-color="#eba06f"/>
++        </radialGradient>
++        <!-- 金果：柔柔的光晕 -->
++        <radialGradient id="goldHalo" cx="50%" cy="50%" r="50%">
++          <stop offset="0%" stop-color="#f9eec6" stop-opacity=".8"/>
++          <stop offset="55%" stop-color="#eedc9f" stop-opacity=".28"/>
++          <stop offset="100%" stop-color="#eedc9f" stop-opacity="0"/>
++        </radialGradient>
++        <radialGradient id="goldFruit" cx="40%" cy="32%" r="70%">
++          <stop offset="0%" stop-color="#f4dd90"/>
++          <stop offset="55%" stop-color="#e0bd56"/>
++          <stop offset="100%" stop-color="#cfaa48"/>
++        </radialGradient>
++        <!-- 疤：被新皮温柔包裹的柔边 -->
++        <radialGradient id="scarRing" cx="50%" cy="45%" r="55%">
++          <stop offset="0%" stop-color="#9a6b45" stop-opacity=".9"/>
++          <stop offset="100%" stop-color="#9a6b45" stop-opacity="0"/>
++        </radialGradient>
+         <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+           <feGaussianBlur stdDeviation="1.1"/>
+         </filter>
+       </defs>
+-      <!-- soil 由 JS 注入；树各组由 JS 参数化生成 -->
++      <!-- soil 与树各组由 JS 参数化生成 -->
+       <g id="treeRoot"></g>
+     </svg>
+   </section>
+ 
+   <!-- 地下水壶按钮 -->
+   <button class="water-btn" id="waterBtn" aria-label="给树浇水">
+     <span class="btn-inner">
+-      <span class="pour" id="pour"></span>
++      <span class="pour" id="pour" aria-hidden="true"></span>
+       浇水
+     </span>
+     <small class="water-state" id="waterState"></small>
+   </button>
+ 
+   <!-- 底部控制排 -->
+   <footer class="dock">
+-    <button class="dock-btn" id="breathBtn" aria-label="呼吸引导">🌬️ 呼吸</button>
+-    <button class="dock-btn" id="feelBtn" aria-label="记录今天感受">🍃 感受</button>
+-    <button class="dock-btn" id="muteBtn" aria-label="声音开关">🔊</button>
++    <button class="dock-btn" id="breathBtn" aria-label="呼吸引导"><span class="dock-ico" aria-hidden="true">🌬️</span>呼吸</button>
++    <button class="dock-btn" id="feelBtn" aria-label="记录今天感受"><span class="dock-ico" aria-hidden="true">🍃</span>感受</button>
++    <button class="dock-btn" id="muteBtn" aria-label="声音开关"><span class="dock-ico" aria-hidden="true">🔊</span></button>
+   </footer>
+ 
+-  <!-- 静音常驻角标 -->
+-  <div class="quiet-note" id="quietNote" hidden></div>
++  <!-- 常驻低语行 -->
++  <p class="quiet-note" id="quietNote" aria-live="polite" hidden></p>
+ </main>
+ 
+ <!-- ===== 呼吸引导浮层 ===== -->
+ <div class="overlay" id="breathOverlay" hidden>
+
+[0m
+Thinking: Now the overlays: mood buttons could include aria-pressed state for .sel but JS handles class. Add aria-hidden on card emojis. Add nicer copy already. Also `betterBtn` inner has ✦ - decorative but meaningful; fine.
+
+Add aria-pressed to muteBtn? JS text changes; set aria-pressed in app.js.
+
+Overlays fine; maybe add role="dialog" aria-modal="true" and aria-labelledby for breath card (title is word inside ring) and feel card h3. Let's add id to feel h3 and set aria-labelledby. Keep simple but improved a11y. Add role="dialog" aria-modal="true".
+
+Edit overlays.
+[0m← [0mEdit index.html
+Index: /tmp/oc-tree/index.html
+===================================================================
+--- /tmp/oc-tree/index.html
++++ /tmp/oc-tree/index.html
+@@ -127,29 +127,29 @@
+   <p class="quiet-note" id="quietNote" aria-live="polite" hidden></p>
+ </main>
+ 
+ <!-- ===== 呼吸引导浮层 ===== -->
+-<div class="overlay" id="breathOverlay" hidden>
++<div class="overlay" id="breathOverlay" role="dialog" aria-modal="true" aria-label="呼吸引导" hidden>
+   <div class="breath-card">
+     <div class="breath-ring" id="breathRing"><span id="breathWord">吸气</span></div>
+     <p class="breath-tip" id="breathTip"></p>
+     <button class="ghost-btn" id="breathClose">收好</button>
+   </div>
+ </div>
+ 
+ <!-- ===== 感受记录浮层 ===== -->
+-<div class="overlay" id="feelOverlay" hidden>
++<div class="overlay" id="feelOverlay" role="dialog" aria-modal="true" aria-labelledby="feelTitle" hidden>
+   <div class="feel-card">
+-    <h3>今天的感觉</h3>
++    <h3 id="feelTitle">今天的感觉</h3>
+     <p class="feel-sub">选一个，或都不选。只是看看也够好。</p>
+     <div class="moods" id="moodRow">
+       <button class="mood" data-f="0" data-color="#c7dfc9" style="--c:#c7dfc9">平静</button>
+       <button class="mood" data-f="1" data-color="#d9e5f2" style="--c:#d9e5f2">还好</button>
+       <button class="mood" data-f="2" data-color="#ead4a0" style="--c:#ead4a0">有点累</button>
+       <button class="mood" data-f="3" data-color="#e7cccc" style="--c:#e7cccc">难受</button>
+     </div>
+     <div class="feel-better" id="betterWrap" hidden>
+-      <button class="ghost-btn gold" id="betterBtn">比昨天好一点 ✦</button>
++      <button class="ghost-btn gold" id="betterBtn"><span aria-hidden="true">✦</span> 比昨天好一点</button>
+     </div>
+     <div class="gold-note" id="goldNote"></div>
+     <button class="ghost-btn" id="feelClose">记好了</button>
+   </div>
+
+[0m
+Thinking: The greeting had `aria-hidden="false"` which is redundant/pointless, let me remove it — it was accidental. Remove aria-hidden false.
+[0m← [0mEdit index.html
+Index: /tmp/oc-tree/index.html
+===================================================================
+--- /tmp/oc-tree/index.html
++++ /tmp/oc-tree/index.html
+@@ -29,9 +29,9 @@
+ 
+ <main class="stage" id="stage">
+   <!-- 顶部：问候 + 结疤旁的花 -->
+   <header class="top">
+-    <div class="greeting" id="greeting" aria-hidden="false">你来了。</div>
++    <div class="greeting" id="greeting">你来了。</div>
+     <div class="subline" id="timeOfDay" aria-live="polite"></div>
+   </header>
+ 
+   <!-- 画面主体：树生长区 -->
+
+[0m
+Thinking: Now rewrite style.css. Let me carefully compose full stylesheet, keeping all required class names & behaviors.
+
+Design decisions:
+- Root tokens updated:
+```
+--green-1:#c7dfc9; --green-2:#94b49a; --green-3:#6f946f;
+--cream:#f9f6ee; --blue-1:#d9e5f2;
+--ink:#42544c; --ink-soft:#63746b;
+--trunk:#8a5f3b; --gold:#d8b25c; --gold-deep:#8a6a16;
+--radius:22px;
+--ease-out:cubic-bezier(.22,1,.36,1);
+--ease-io:cubic-bezier(.45,.05,.55,.95);
+--shadow-soft: 0 6px 18px rgba(80,100,80,.10);
+```
+- Body: bg gradient subtle vertical to mimic sky overflow; text ink; disable tap highlight; support touch-action manip? add `touch-action: manipulation` on buttons to reduce delay? good for mobile.
+
+- Sky gradients refined: day: add subtle warm top glow:
+```
+body.theme-day .sky{background:
+ radial-gradient(120% 60% at 50% -10%, rgba(255,250,232,.55), transparent 60%),
+ linear-gradient(180deg,#cfe8d4 0%,#ecf4ea 48%,#e2eed6 100%);}
+```
+dusk warm:
+```
+radial-gradient(...rgba(247,214,164,.5)...) + linear(180deg,#e9d0a6, #f2e0c2 38%, #c2cdb6)
+```
+Keep similar to current but layered & maybe slightly more airy. Avoid too much change. Night keep deep but add subtle radial moon glow top: lighten top with rgba(90,120,200,.08) etc. Let's add tiny touch.
+
+- Overlay text colors for theme handled below.
+
+- .stage padding adjust: top calc(env(safe-area-inset-top)+18px), sides 20px bottom calc(env(safe-area-inset-bottom)+10px).
+
+- header.top: padding-top small; margin maybe; greeting clamp size: `font-size: clamp(1.25rem, 5.5vw, 1.6rem)`.
+
+- subline ensure contrast color var(--ink-soft) etc.
+
+- scene: align-items flex-end; also vertical positioning nice; keep min-height 300? For small phones maybe reduce via media. Also allow tree area to center with breathing room between header & water button using margins? Scene flex1 spreads; the tree bottom align at end plus water button margin below. Good. Add `padding-bottom:2px`.
+
+- .tree-svg drop-shadow lighter: `filter: drop-shadow(0 8px 16px rgba(70,80,60,.10)) drop-shadow(0 2px 6px rgba(70,80,60,.06));` Two drop shadows maybe fine static; CSS drop-shadow each is blur; two could cost but not animated; but sway animation parent transform triggers re-filter each frame. drop-shadow filters are typically applied to raster each frame -> cost. Original had one. Keep single to be safe: `drop-shadow(0 8px 16px rgba(72,84,70,.12))`.
+
+Wait sway: filter on svg re-raster each frame; single shadow ok. Also with will-change: transform? adding will-change transform while watering maybe. Might skip will-change.
+
+- watering sway: change timing function to gentle sine-like: `animation: sway 2.2s ease-in-out infinite;` to be calmer than 1.4s quick? calmer: 2.4s amplitude ±0.6deg. Reduced motion: none.
+
+- water-btn: gradient top highlight; border; wide pill min-height; label letter spacing; sub-state small; disabled. Idle: when enabled & fill zero, maybe gentle glow: Use body class? we don't have "ready" class. Skip idle anim to avoid complexity.
+
+  Add :focus-visible ring.
+
+- pour droplet animation with watering: `body.watering .pour::before{ animation: drop 1.4s cubic-bezier(.33,1,.5,1) infinite; }` Original once 1.2s ease-in; make smooth fall then fade; infinite during watering (class removed after 1.5s anyway). Good: infinite ok since removed.
+
+- watered glow filter drop-shadow: `body.watered .tree-svg{ filter: drop-shadow(0 6px 14px rgba(70,80,60,.10)) drop-shadow(0 0 0 rgba(...))}` We want bluish gentle sheen maybe drop-shadow with big blur on rgba(122,196,226,.5) 0 0 18px gives soft glow but expensive two shadows. Use a pseudo? The watered glow intended subtle. Use single drop-shadow swap from base to bluish lighter. We'll set base shadow; watered sets `filter: drop-shadow(0 0 16px rgba(146,205,224,.35)) drop-shadow(0 6px 14px rgba(70,80,60,.10));` to keep both? two blur shadows each frame = heavy only 0.9s watering; acceptable but sway animating transform too simultaneously (transform doesn't reraster? filter does). Actually transform animations on element with CSS filter: browsers promote; still filter re-applied each frame to transformed raster. It's fine for short moment.
+
+Better: reduce cost: watered glow remove sway at that time? keep. It's a rare 1.5s effect; acceptable.
+
+- dock: gap; buttons gradient. On short screens, might wrap? three small. Buttons font .9. Provide safe margin.
+
+- quiet-note: display uses p hidden attr; aria-live polite. Font .72rem color ink-soft-ish more subtle but still ~ contrast: color on cream: choose #6f8076 (lighter than soft to look whisper). Compute quick: #6f8076 vs #eaf3ec? I'll target >=3 for small decorative text is not required (it's informative though). Use #64756c close to soft. Use var(--ink-soft) -> .78rem, opacity .9. Letter spacing 1px. Good readable but subtle.
+
+- overlays base flex center padding; backdrop rgba warm green-grey lower darkness, blur(6px) for nice frosted. Use will-change opacity/transform? not needed.
+
+overlay show/hide transition using classes (JS). CSS:
+```
+.overlay{...; opacity:0; visibility:hidden; pointer-events:none;
+ transition: opacity .4s var(--ease-out), visibility 0s linear .4s;}
+.overlay.show{opacity:1; visibility:visible; pointer-events:auto; transition: opacity .4s var(--ease-out);}
+.overlay[hidden]{display:none;}
+```
+But there's an issue: base visibility hidden means card content not focusable while hidden good. With display none when hidden attribute set (initial). When we unhide, display flex; visibility still hidden until .show added (we add show next frame). Then visible. Transition from hidden .show? At open, element goes display none→flex. Then remove... Actually sequence: set hidden=false (display flex now, still no .show → opacity 0 visibility hidden). Then rAF add .show: transition opacity 0→1 over .4s. Works.
+
+Focus management a11y: when overlay opens we might focus close button; original didn't. Add in JS showOverlay focus first ghost? Could focus the ring? To keep simple, when opening focus the primary interactive: breath close button, feel... keep: focus overlay itself? We can focus the card close button. Focus visible ring appears — nice for keyboard. But on mobile auto-focus opens keyboard? Buttons fine. Let's focus close? For feel, better not to force selection; focusing close is fine? Many gentle. Hmm original doesn't; avoid surprise: skip focus to reduce risk; but then focus stays behind overlay (invisible). Could set tabindex and focus overlay container. Let me focus the overlay element itself (it's role dialog). Focusing a div without tabindex won't work unless tabindex=-1. Add in showOverlay: `el.setAttribute('tabindex','-1'); el.focus();` Prevent scroll? fine. On close restore focus to opener? Complexity; skip restore. Eh accessibility partial improvement acceptable; but risk focus loop: focusing overlay that contains buttons; Tab moves inside. Good enough. We'll implement but guard.
+
+For breath: after close, breathClose hidden.
+
+Keep hidden semantics: hideOverlay sets hidden after transition.
+
+Reduced-motion: transitions none; JS checks reduced to hide instantly; but CSS media query sets transition none so it would still hide via transitionend fallback quickly (timeout 60ms?). Provide JS handling: if reduceMotion, set hidden immediately.
+
+- breath-ring style:
+```
+.breath-ring{ width:min(168px,64vw); height:...; border-radius:50%; display flex center;
+ background:
+   radial-gradient(120% 100% at 30% 20%, rgba(255,255,255,.85), transparent 60%),
+   radial-gradient(circle at 50% 50%, #cfe4cf, #a5c7a3 70%, #8fb493);
+ color:#fdfdfa; ... box-shadow:
+   inset 0 -6px 14px rgba(70,100,80,.18),
+   0 10px 30px rgba(120,150,130,.28),
+   0 0 0 10px rgba(207,228,207,.35); // breathing outer soft ring fixed? Instead dynamic glow through animation opacity? Keyframes can change box-shadow too maybe cost. Keep static ring border faint.
+ }
+```
+Add a faint outer halo ring via ::after ring that breathes? A static pale ring is fine.
+
+Ring span word inside has slight text shadow for readability.
+
+Animations:
+```
+.breath-ring.inhale{ animation: inhaleR 4s var(--ease-io) forwards; }
+.breath-ring.exhale{ animation: exhaleR 6s var(--ease-io) forwards; }
+@keyframes inhaleR{ from{transform:scale(.76)} to{transform:scale(1)} }
+@keyframes exhaleR{ from{transform:scale(1)} to{transform:scale(.76)} }
+```
+On media reduced: animation none; keep default size.
+
+Base `.breath-ring` transform scale(1). When overlay opens initial className='breath-ring inhale' set by JS immediately triggers inhaleR from scale .76→1 over 4s. Good start.
+
+But note: original code sets ring.className when open to include inhale before cycle set; also it starts timer. okay.
+
+Potential: Since animation forwards fill, after inhale completes stays at scale(1) fill; then class exhale new anim. good.
+
+- breath card entrance: `.overlay.show .breath-card { transform: translateY(0) scale(1); opacity:1 }` with base card `transform: translateY(14px) scale(.98); opacity:0; transition: transform .5s var(--ease-out), opacity .5s var(--ease-out);` same feel-card. And transition-delay maybe .06s to let backdrop appear first: subtle.
+
+- ghost-btn and gold improved; focus-visible.
+
+- moods: keep colored pastel buttons; enhance with inner soft; border none; white text? colors are pastel light; text #3c4a43 dark good. .sel adds ring using color var(--c) darken? outline uses color var; but outline color = --c very light; use `box-shadow: 0 0 0 2px var(--c), 0 0 0 4px rgba(66,84,76,.55)`? Hmm focus ring. Selection indicated not only by color (avoid pure color): add a small "已选" check glyph? Add `.mood.sel::after` content "✓"? but button width 62; add tiny dot at top right corner? Let's add `aria-pressed` toggled in JS instead + a soft ✓ watermark. Simpler: on .sel show a small inner white dot top-left and darken text bold. Keep color + ring + tick ensures non-color indicator. I'll add a ::after content '·' no... Add `.mood.sel{ font-weight:600; box-shadow: inset 0 0 0 1px rgba(0,0,0,.04), 0 0 0 2px var(--c);} .mood.sel::after{content:"✓"; position:absolute; top:4px; right:6px; font-size:.6rem; color:#4a5a52;}` mood needs position relative. Mood buttons fixed width 62 & pill-ish radius 16. Put text centered. tick might overlap text '平静' at width62 maybe ok (62px width 2 chars 0.92rem). Might collide; acceptable small. But JS removes sel after 600ms anyway, tick transient. Actually recordFeel shows sel only briefly then remove after 600ms. So tick not needed long; but also improves non-color. keep small.
+
+  Since JS removes sel after timeout 600, selection transient already is a "pick" feedback.
+
+- .gold-note & feel-better spacing.
+
+- responsive small height: 
+```
+@media (max-height: 640px){
+  .scene{ min-height: 220px; }
+  .tree-svg{ max-height: 48dvh; }
+  .greeting{ font-size: 1.15rem; letter-spacing: 3px; }
+  header.top{ padding-top:0 }
+}
+```
+But .tree-svg max-height 58dvh also; override.
+
+- width small (max-width:360px) adjust paddings: stage side 16px; dock gap 10; dock-btn padding 8px 12px; water width min(200px,62vw).
+
+- safety safe-area for overlays: overlay padding includes safe area: `padding: calc(env(safe-area-inset-top)+16px) 18px calc(env(safe-area-inset-bottom)+16px);` plus align center; card max-height with overflow auto? In landscape short, card 320 wide 88vw maybe taller than viewport: allow card `max-height: calc(100dvh - 40px); overflow-y:auto;` breathing cards content small fine.
+
+- focus-visible general:
+```
+:focus-visible{ outline: 2px solid rgba(74,110,98,.8); outline-offset: 2px; border-radius: ... ; }
+button:focus-visible...
+```
+Ring soft color #5a8677 maybe.
+
+- Avoid pure color: mood sel ring + tick; tree stage aria-label text; water disabled conveyed also via text ("· N 分钟后可再浇" state). Good: water disabled still show reason via small state text. Also aria-disabled? button.disabled true so announced disabled. state text 'N 分钟后可再浇' informative fine (not pressure? but existing copy, keep).
+
+- Add smooth color-scheme? set meta theme color already.
+
+- `.water-state` currently absolutely under button top:100% causing possible overflow over tree? It's fine but within flow small text below button; original absolute. Because .stage flex column; absolute state won't reserve space maybe overlaps dock. Change to static text line inside column? put below button as normal block: `.water-state{ display:block; min-height:1em; margin-top:6px; text-align:center }` inside button as block after inner - static; increases button height small; ensures spacing consistent, no overlay weirdness. But .btn-inner flex and small block then block line below, layout fine. Since JS removed `body .water-state{display:block}` needed anyway. We'll define display:block & remove injection.
+
+  Keep it not absolute to avoid overlap on the tree/dock and ensure reserve.
+
+- Provide CSS variables also for theme text:
+```
+body.theme-night{ --ink:#eef2ea; --ink-soft:#b7c6bf; }
+```
+Wait root --ink used by many components (cards white, dock light) Should not flip all text to light on night because dock/cards are light surfaces. Only header greeting/subline/quiet-note should switch. So do explicit overrides instead of var flip. But quiet-note color var(--ink-soft) set globally on white? quiet-note sits directly on sky (bottom), not in card. In day it's over light gradient bottom greenish. so set its own color var(--ink-soft)? On day bg #dcead2 bottom near greenish: contrast maybe ~ ink-soft 4.4 ok. Use explicit color and override in night.
+
+Let me craft the actual file now. I'll produce the CSS with balanced values.
+
+Time-of-day theme classes: JS uses `body.className='theme-day'` overwriting all classes -> so if I add body classes via media not issue. But note: any other body classes like 'watering'/'watered' are added via classList.add (not overwrite), good.
+
+Now write full style.css.
+
+Colors ensure gentle. Provide night override blocks:
+```
+body.theme-night .greeting{ color:#f0f3ec; }
+body.theme-night .subline{ color:#b9c9c1; }
+body.theme-night .quiet-note{ color:#a7b8b0; }
+body.theme-dusk .subline{ color:#5d6f64; } maybe default okay.
+```
+Greeting default color ink; dusk sky top light enough contrast with ink ~ on #e7cfa8 4.4? compute ink vs #e7cfa8 approx; acceptable as heading large font-weight 600 => large text 3:1 threshold passes (~ likely >4). fine.
+
+Tree at night: soil colors still dark enough visible over navy? The tree sits above soilY with trunk dark brown on navy background -> low contrast but silhouette fine; night has particles stars behind; a dark tree against dark sky could look muddy. Add subtle light behind tree at night: give .scene a soft radial glow behind? Could add `.scene::before` glow that changes per theme; but scene position relative; add pseudo circle behind tree center low area. Might be nice but keep subtle & avoid overlap of many things. Let's add `.scene::before` fixed size behind bottom center faint radial; day barely visible cream glow; night soft pale blue glow to lift silhouette:
+```
+.scene::before{ content:""; position:absolute; left:50%; bottom:2%; width:min(80vw,360px); height:46%; transform:translateX(-50%);
+ background: radial-gradient(50% 60% at 50% 100%, rgba(255,255,255,.5), transparent 70%);
+ pointer-events:none; }
+body.theme-night .scene::before{ background: radial-gradient(50% 60% at 50% 100%, rgba(150,180,210,.18), transparent 72%); }
+body.theme-dusk .scene::before{ background: radial-gradient(50% 60% at 50% 100%, rgba(255,244,214,.4), transparent 72%); }
+```
+Opacity normal for day maybe soft to add watercolor luminance; use very low. Ensure not covering the tree because behind (z-index? ::before default stacking inside scene after? background behind content since element painted below children). Set z-index:0; tree svg position relative? tree svg is child so painted above pseudo. good.
+
+But scene flex center; glow behind entire bottom area nice.
+
+Also day sky not needed since gradient.
+
+OK now compose full CSS file. Must keep `.leave-hint` maybe leave in (unused but harmless keep? Could drop). Keep small.
+
+Also include .toast base & show (we'll remove injection in JS). And body.watered glow, plus removal of the injected water-state line.
+
+Let me now write the file.
+
+Length ~ large. Also add `@media (prefers-reduced-motion: reduce)` group.
+
+Particles canvas hidden when reduced? leave.
+
+Write now.
+index.html 已更新。现在重写 style.css（保留全部 JS 依赖的类名/选择器，仅优化视觉/动效/排版）。
+[0m← [0mWrite style.css
+Wrote file successfully.
+[0m
+Thinking: I included `.tree-svg .treeRoot-halo { opacity: 0; }` unnecessary leftover — remove. Also the `.overlay` reduced-motion block sets `.overlay{visibility: visible}` which would force show even when hidden -> Since `.overlay[hidden]{display:none}` still hides, and after JS hideOverlay we set hidden true so display none; fine, but during times when we intend it hidden with class removed but not hidden set, visibility visible shows empty overlay backdrop w/o show class (opacity forced 1!) => could flash. Actually the reduced-motion media sets opacity:1 !important on .overlay — that means even without .show it's fully visible (opacity 1), but visibility:visible forced → overlay appears even when closed (before hidden). That's a bug: on open we set hidden=false then next frame add .show; but with reduced-motion overlay visible with no .show for that frame — invisible frame anyway. But at close, hideOverlay removes .show and (in reduced case JS sets hidden immediately), so ok. But what about initial page: overlays have hidden attr so display none. Good. So only transient open gap a frame (opacity forced 1 & visible, could show briefly with card opacity 0? card opacity forced 1 too). Actually card forced opacity 1 => visible right at hidden=false, fine, then JS adds show (no transition needed). Not problematic.
+
+But a cleaner reduced-motion approach: keep CSS transitions but tiny durations (done by * rule .001s). Then .overlay without .show would still be opacity 0 normally (no force needed). The * rule sets transition-duration tiny so adding .show snaps instantly, no forced values needed. Let me remove the forced opacity/visibility lines to avoid bugs, keep only transform/animations none lines. But breath-ring * animation duration .001s means inhale/exhale keyframes finish instantly at scale(1) or .76 and hold? forwards fill would jump to final scale instantly (animation runs .001s so goes to end value; forwards keeps at final = inhale 1 / exhale .76). Since JS toggles word text regardless, the ring will snap small during exhale but static otherwise - acceptable reduced motion (they still know exhale). Slight issue inhale: base .breath-ring no class? after inhale then exhale class replaces; fine.
+
+Also, with `*` transition-duration .001s, .overlay transitions effectively instant - hideOverlay relies on transitionend? We will implement JS reduced handling to hide instantly; but if not reduced and CSS forces .001s due to user preference mismatch (media reduce false) it's fine.
+
+Remove forced overlay lines in reduced block; keep `transform:none` maybe not needed.
+
+Additionally, we must ensure `.overlay` base (no show) opacity 0: our reduced rule sets opacity 1 override would show ghost overlay when hidden=false but show not yet added during normal open in reduce — 1 frame. We'll set reduced path in JS to also just show instantly; still the open flow: hidden=false; add class next rAF. But our JS showOverlay we will detect reduced and add class immediately (no rAF wait) so opacity 1 anyway. And card opacity 1 forced. So even if a frame between, both forced visible => no flash. It's ok but fragile; I'll remove those forced opacity & visibility lines and rely on JS reduced handling (add/remove class immediate). Cleaner. Let me edit.
+[0m← [0mEdit style.css
+Index: /tmp/oc-tree/style.css
+===================================================================
+--- /tmp/oc-tree/style.css
++++ /tmp/oc-tree/style.css
+@@ -375,10 +375,8 @@
+     animation-iteration-count: 1 !important;
+     transition-duration: .001s !important;
+     scroll-behavior: auto !important;
+   }
+-  .breath-ring { transform: none; }
+-  .overlay, .breath-card, .feel-card, .toast { opacity: 1 !important; }
+-  .overlay { visibility: visible; }
++  .breath-ring { animation: none !important; transform: none; }
+   body.watering .tree-svg { animation: none; }
+   body.watering .pour::before { animation: none; }
+ }
+
+[0m
+Thinking: Remove leftover .treeRoot-halo line.
+[0m← [0mEdit style.css
+Index: /tmp/oc-tree/style.css
+===================================================================
+--- /tmp/oc-tree/style.css
++++ /tmp/oc-tree/style.css
+@@ -110,9 +110,8 @@
+   max-height: 58dvh;
+   overflow: visible;
+   filter: drop-shadow(0 8px 16px rgba(72, 84, 72, .10));
+ }
+-.tree-svg .treeRoot-halo { opacity: 0; }
+ 
+ /* 浇水时树木轻微颤动——更缓更柔 */
+ body.watering .tree-svg {
+   animation: sway 2.2s ease-in-out infinite;
+
+[0m
+Thinking: Now app.js edits. Let me plan modifications carefully, in order:
+
+1. Add `prefersReducedMotion` const near top (after const $).
+2. Overlay helpers showOverlay/hideOverlay.
+3. openBreath/closeBreath use showOverlay/hideOverlay; openFeel use showOverlay.
+4. Replace overlay direct hidden assignments in events & recordBetter & bindEvents click handlers.
+5. toast: create element role=status aria-live; remove injected style block; keep body.watered glow handled by CSS now (already in css). Remove `_st` injection entirely.
+6. particles: throttle & reduced motion & background tab. Adjust loopP using timestamp param from rAF.
+7. renderTree enhance + helpers mixHex & gradient blobs; remove injected radialGradient soil defs (now in index.html defs). The innerHTML assigned to root = html (just shapes). But careful: seed title included; ok.
+
+Let me design renderTree new code in full replacement.
+
+Helpers:
+```
+function hexToRgb(h){...} function mixHex(a,b,t){...}
+```
+or numeric. I'll implement parse to ints.
+
+New soil block:
+```
+html += `<ellipse cx="${baseX}" cy="${soilY+2}" rx="104" ry="16" fill="rgba(72,58,40,.18)" filter="url(#soft)"/>`;   // soft ground shadow - blur once cheap
+html += `<ellipse cx="${baseX}" cy="${soilY}" rx="88" ry="13" fill="#8a6a4e" opacity=".55"/>`;
+html += `<ellipse cx="${baseX}" cy="${soilY-1}" rx="74" ry="10.5" fill="url(#soilgrad)" opacity=".95"/>`;
+html += `<ellipse cx="${baseX}" cy="${soilY-2.4}" rx="60" ry="7" fill="url(#soilTop)" opacity=".7"/>`;
+```
+Wait opacity of soilgrad stops already solid; we want the top light gradient translucent overlay (soilTop fades to 0) to create sheen; nice.
+
+Blur on ground shadow ellipse: filter url(#soft) std 1.1 cheap.
+
+Grow stages trunk/crown.
+
+Tree trunk wash:
+```
+// 手绘叠色：先一笔更宽的浅色“晕”，再主笔，更透气
+html += `<path d=... stroke="#b98a5f" stroke-width="${trunkW+3}" stroke-linecap="round" opacity=".35"/>`; but path stroke-linecap round may leave blob; since trunkW grows g up to ~11.5; wash +3. Main trunk color maybe gradient? stroke gradient along path hard; can use stroke url(#trunkGrad)? trunkGrad is radial center; radial in user space applies across bounding box; along a thin tall path looks gradient from top center... complex; skip, keep two-tone wash + core + a soft light highlight small path on left:
+```
+Actually simpler produce watercolor: draw trunk path multiple with widths & low alphas:
+- underlay color #c08e60 opacity .28 width trunkW*1.55
+- mid #9a6c44 opacity .5 width trunkW*1.1 offset slight right? overlapping gives blended edge. Then core #8a5f3b width trunkW*0.72. Then highlight thin line near top-left lighter opacity .25 width trunkW*0.28 to emulate light from upper left (already scene light from top). Might look nice.
+But different widths with same curved path look concentric soft - nice watercolor.
+
+Keep number moderate (3 strokes). 
+
+Roots suggestion: add two faint "buttress" arcs at base blending trunk into soil: small ellipses color trunk low alpha at base both sides to ground the trunk (watercolor base flare). Actually original trunk meets soil directly. Add small ellipse at base:
+`<ellipse cx=baseX cy=soilY-1 rx=trunkW*0.9 ry=trunkW*0.28 fill=#8a5f3b opacity=.5/>` gives foot. plus two tiny root lines? skip.
+
+Scar: position scY computed. Colors:
+```
+const growAge = Math.max(0, Math.min(1,(g-0.12)/0.88)); // 0..1 sapling->canopy
+const newP = Math.min(1, 0.15+growAge*0.85);           // wrap progress
+let scar = colorMix('#5e3f28', '#c09168', newP);       // deep wood -> 新皮色
+const young = 1-growAge;
+const scarW = trunkW*(0.34+...);
+rx base trunkW*0.3+g*1.2 as original? Use relative so with thin trunk young sapling not too big.
+```
+Original scarRx = trunkW*0.30+g*1.2 grows 0.3.. maybe big at g .12 (trunkW ~3.6? no sapling trunkW=2.5+9*g, at g=0.13 ~3.7 => scarRx=1.1+0.16=1.26 small then g=1 =>11.5*0.3+1.2=4.65). ok.
+
+Alpha: originally fades with g (wrapped): alpha = max(.04,.4-.26*g). At g=.13 alpha .366; at 1 => .14. We'll keep gentle but also more wrap later: alpha .34-ish decaying to .12 and lighter color as new bark. New bark ring around (scarRing gradient) always drawn lightly.
+
+New implementation:
+```
+const wrap = Math.max(0, Math.min(1, (g-0.12)/0.88));
+const scarInner = mix('#5e3f28','#c4956d', Math.min(1, .25 + wrap*1.1));  // to light warm new-bark
+const scarA = Math.max(.06, .42 - g*.3);
+const rx=..., ry=rx*.88;
+// 外层被新皮包住的柔晕
+html += `<ellipse ... fill="url(#scarRing)" opacity="${(scarA*.9).toFixed(2)}"/>` bigger rx+2
+// 中央旧痕（颜色向新皮色过渡）
+html += ellipse fill scarInner opacity scarA;
+// 顶上一道受光细边（愈合隆起受光）
+html += `<path d="M ${baseX-rx},${scY-1} A ${rx} ${ry*.7} 0 0 1 ${baseX+rx},${scY-1}" fill=none stroke="#c9a376" opacity=${(scarA).toFixed(2)} stroke-width="1.1"/>`  - arc along top to suggest new bark over old? careful small.
+
+Actually the ellipse ry smaller .88 ratio; top arc path at slight above center.
+```
+We also place trunk underlay strokes first then scar above? For wrap illusion, scar should appear slightly recessed inside trunk; drawing scar after core is fine, with the top light arc giving volume.
+
+Flower beside scar: function below revamp referencing petal gradients & heart; position relative to scar like original.
+
+Crown revamp:
+
+```
+const crownCy=..., crownR=...
+html crown halo: `<circle cx=baseX cy=crownCy r=crownR*1.45 fill=url(#leafG1) opacity=.4/>` wash behind.
+blobs count similar; radius distribution; each blob gradient id selected: `const grad = i%5===0? 'url(#leafG2)': (i%3===0? 'url(#leafG1)':'url(#leafG0)');`
+Maybe additionally offset small internal highlight not needed.
+Then top crown soft circle url(#leafG0) full.
+嫩芽 top.
+```
+Since gradients feather to 0 the blobs won't have crisp edge -> overlapping watercolor lumps. Might look very soft/pale overall. To keep shape definition, ensure blob circle sized to allow core visible: gradient r 75% means at edge transparent, so circle only ~center 50% shows color at moderate alpha... combined overlaps fine likely airy. Might become too faint though. Let's instead give gradient stops higher center opacity .95 -> visible lumps but soft edges. Overlap yields nice depth. Also we can add few solid very low alpha pale circles for cohesion.
+
+Consider increasing blob count slightly? original 5..27; we keep same count but feathering reduces painted area -> crown maybe sparse early. To compensate add halo wash circle behind (alpha .35 center gradient) large covers area, and blobs inside add texture. Good balance & still lightweight (gradients cheap static).
+
+Also the crown sway? No.
+
+Add leafColor variance also can tint a few leaves by feels color lightly (the "感受上色" plant). Might be tasteful: Determine accent from last feel:
+```
+function feelTint(){ const fs=state.feels; if(!fs||!fs.length) return null; return fs[fs.length-1].color; }
+```
+feels color values like '#c7dfc9' (pale green) '#e7cccc' etc. Using them as tint could be gorgeous subtle on few highlight leaves: define extra gradient? We can tint by mixing gradient with tint via referencing dynamic gradient id? Since gradients are static defs, referencing only static. Simplest accent: a few small soft circles colored with feel color at alpha .55 (fill mix) to echo today's/ latest mood—but feels color might equal green (like 平静 #c7dfc9) invisible; fine. Use two "memory leaves": location upper crown; only when stage >= bud & has feel. This adds non-pressure emotional connection, allowed (rendering choice). Might be nice but color could clash garishly? They are low-sat pastels. I'll add up to 2 gentle accent circles w/ mix? Keep it subtle. Actually we must be careful adding anything that reads as new feature; it's rendering decoration, acceptable. But keep code minimal & safe. I'll implement a soft accent using latest feel color, drawing one small blossom-like bud near crown, low opacity. Skip tinting leaves.
+
+Hmm risk: mood colors #ead4a0 soft yellow maybe clashes little; opacity .5 fine.
+
+Actually simpler skip accent to reduce risk? Task explicitly: 可微调 JS 仅用于渲染/布局/动效（如树冠颜色选择...）。Colorful subtle echo is within. I'll do modest accent only for bloom+ stage: replace 1 of nFl flowers color center with feel tint? Too fiddly. I'll add one "feeling leaf" at canopy: circle with latest feel color opacity .55 and white-ish gradient? Not necessary. Let me include tasteful: if feel tint available, two soft pastel petal buds among crown using flowerHTMLAt with tinted heart? flowerHeart fixed gradients. Eh.
+
+Decision: skip mood tint to avoid muddying; focus gradient & texture quality. Keep to task highlights: quality tree, scar/flower, spacing/motion, responsiveness/a11y, perf. fine.
+
+Gold fruit halos.
+
+Now let me carefully rewrite renderTree inner body & helper functions in file.
+
+flowerHTMLAt(cx,cy,r,alpha,g):
+```
+function flowerHTMLAt(cx,cy,r,alpha,g){
+  const n=5; let out='<g opacity="'+alpha.toFixed(2)+'">';
+  for (let i=0;i<n;i++){
+    const a=i/n*Math.PI*2 - Math.PI/2;
+    const px=cx+Math.cos(a)*r*.78, py=cy+Math.sin(a)*r*.78;
+    const pet = i%2? 'url(#petalA)':'url(#petalB)';
+    out+=`<circle cx=... r="${(r*1.05).toFixed(1)}" fill="${pet}"/>`;
+  }
+  // heart
+  out+=`<circle cx cx cy r="${(r*0.55)}" fill="url(#heartG)"/>`;
+  out+=`<circle cx=cx-r*0.14 cy=cy-r*0.16 r=r*0.16 fill="#fff" opacity=.85/>` small sparkle? too shiny maybe; use tiny highlight within heart .5 alpha.
+  out+='</g>'
+}
+```
+Original petal circles centered offset .72*r radius .85r => petals overlap center. We keep similar but with gradient fills & slightly larger offset to see petal shapes; use center petal gradient each; heart small warm gradient + micro highlight.
+
+But petals r*.85 heavy overlap might make flower just blob. With gradient fill soft, ok; keep offset .78 and petal radius r*0.9. Flower diameter overall ~ 2*(.78+ .9)*r ≈. Let's fine.
+
+Add soft halo only if r>=? skip halo (perf & subtle).
+
+Gold fruit function:
+```
+function goldFruitHTML(cx,cy,r){
+  let s=`<g>`;
+  s+=`<circle cx cy r="${r*2.1}" fill="url(#goldHalo)"/>`;  // glow
+  s+=`<circle cx cy r r fill="url(#goldFruit)" stroke="rgba(255,255,255,.55)" stroke-width="1"/>`;
+  s+=`<circle highlight small #fff7d8 opacity .95 at -r*.32 .../>`;
+  s+='</g>';
+}
+```
+r 5.4 so glow ~11 radius subtle alpha gradient; nice.
+
+Replace gold sphere call in fruit loop with goldFruitHTML.
+
+Also the bud/bloom flowers within crown call flowerHTMLAt existing signature unchanged.
+
+Sapling sprout stage leaves improve w/ gradients leafG0? For seedling cotyledon keep small ellipses but with low opacity second layer for feather: e.g., add ellipse under each leaf slightly bigger opacity .3 same color? Eh fine minor; keep but color slightly refined. Add a tiny soft seed soil highlight remains seed stage.
+
+Let me now actually rewrite the big function block lines 207-303 plus helpers 305-325 & gold handling & trunk gradient injection removal.
+
+I'll replace from `function renderTree(g) {` to end of `goldFruitIntended`? Let's target precisely.
+
+Original lines: from `function renderTree(g) {`(207) through line 303 (`}` closing renderTree) plus sphere 305-310, flowerHTMLAt 312-325. I'll rewrite these entire as new text.
+
+Additionally add mixHex helper near helpers.
+
+Let's produce new code:
+
+```
+  // 颜色插值：疤色从深木色向新皮色过渡（随成长被“温柔包裹”）
+  function mixHex(a, b, t) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const ar = pa >> 16, ag = (pa >> 8) & 255, ab = pa & 255;
+    const br = pb >> 16, bg = (pb >> 8) & 255, bb = pb & 255;
+    const mr = Math.round(ar + (br - ar) * t), mg = Math.round(ag + (bg - ag) * t), mb = Math.round(ab + (bb - ab) * t);
+    return '#' + ((1 << 24) + (mr << 16) + (mg << 8) + mb).toString(16).slice(1);
+  }
+
+  function renderTree(g) {
+    const root = $('treeRoot');
+    if (!root) return;
+    const baseX = 160, soilY = 408;
+    let html = '';
+
+    // —— 土壤：软影 + 受光土丘（多一层渐变，更立体透气）
+    html += `<ellipse cx="${baseX}" cy="${soilY + 3}" rx="106" ry="16" fill="#5d4a33" opacity=".22" filter="url(#soft)"/>`;
+    html += `<ellipse cx="${baseX}" cy="${soilY}" rx="90" ry="13" fill="#8a6a4e" opacity=".5"/>`;
+    html += `<ellipse cx="${baseX}" cy="${soilY - 1}" rx="76" ry="11" fill="url(#soilgrad)" opacity=".95"/>`;
+    html += `<ellipse cx="${baseX}" cy="${soilY - 3}" rx="56" ry="6.5" fill="url(#soilTop)" opacity=".8"/>`;
+
+    const trunkH = 20 + g * 165;
+    const trunkW = 2.5 + g * 9;
+
+    if (g < 0.001) {
+      // 种子：更接近真实的一粒，带一点受光
+      html += `<ellipse cx="${baseX}" cy="${soilY - 2}" rx="12" ry="3.4" fill="#6d573c" opacity=".5"/>`;
+      html += `<ellipse cx="${baseX}" cy="${soilY - 4.5}" rx="8" ry="4.6" fill="url(#soilgrad)" opacity=".5"/>`; ... 
+```
+Wait a soil mound behind seed complicates. Simpler seed visuals: keep original two ellipses (outer shell + inner), plus small highlight; plus tiny shadow on soil.
+
+```
+      html += `<ellipse cx="${baseX}" cy="${soilY - 2}" rx="9" ry="2.6" fill="#5d4a33" opacity=".4"/>`;
+      html += `<ellipse cx="${baseX}" cy="${soilY - 5}" rx="8" ry="4.6" fill="#b78a52"/>`;
+      html += `<ellipse cx="${baseX - .5}" cy="${soilY - 6}" rx="2.6" ry="4.2" fill="#c9a26b" opacity=".95"/>`;
+      html += `<circle cx="${baseX - 2.4}" cy="${soilY - 6.4}" r="1" fill="#f6e9d2" opacity=".85"/>`;
+      html += `<title>一颗种子，正在土里安静歇着。慢慢来，它会知道的。</title>`;
+```
+
+else if g<0.12 sprout:
+```
+      const h = 4 + g * 55;
+      const tipY = soilY - h;
+      // 短茎
+      html += `<line .../>`;
+      // 两片初叶（渐变，更水彩）
+      html += `<g opacity=".98">`
+      for leaves: two ellipses w slight radial gradient? ellipse fill leafG gradients become radial fill default in user space relative to element bbox; ellipse using url(#leafG0) has feathered edge soft nice.
+      Use two groups: under-layer ellipse slightly bigger low alpha + main ellipse url(#leafG2/leafG1) for feather:
+```
+Add base stem shadow tiny width? fine.
+
+Simplest: replace fill solid with gradient and add soft under shadow ellipse below ground at stem base: `<ellipse cx baseY cy soilY+1 rx trunkW*1.2 ry1.4 opacity .35 color>` not necessary.
+
+For sapling (g<0.12) leaf colors lighter: leafG1 and leafG0.
+
+full else for tree >0.12:
+
+```
+      const topY = soilY - trunkH;
+      const hr = Math.max(0, g - 0.12) / 0.88;
+
+      // 主干：先“晕”一笔，再两笔叠色 → 手绘水彩质感
+      const trunkP = (w, nudge) => `M${baseX - w/2 + nudge},${soilY} C ${baseX - w - 2 + nudge},${soilY - trunkH * .35} ${baseX + w + 2 + nudge},${soilY - trunkH * .6} ${baseX + nudge},${topY}`;
+      html += `<path d="${trunkP(trunkW * 1.6, 0)}" fill="none" stroke="#a97c50" stroke-width="${trunkW * 1.4}" stroke-linecap="round" stroke-linejoin="round" opacity=".28"/>`;
+      html += `<path d="${trunkP(trunkW * 1.05, 0)}" fill="none" stroke="#9a6c44" stroke-width="${trunkW * .95}" stroke-linecap="round" stroke-linejoin="round" opacity=".55"/>`;
+      html += `<path d="${trunkP(trunkW, 0)}" fill="none" stroke="#8a5f3b" stroke-width="${trunkW * .72}" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/>`;
+```
+Wait widths: path positions use trunkP(w/2?) The function takes width param w and control offsets use w... Let me define trunkP(wHalf? ) messy. Redefine simpler function computing path with a base center but varying curve; for narrower strokes path same center. Use widths as stroke-width and same geometry path except control nudging by ~±2 to keep centered roughly:
+
+```
+      const trunkP = (s) => `M${baseX - s/2},${soilY} C ${baseX - s},${soilY - trunkH * .35} ${baseX + s},${soilY - trunkH * .6} ${baseX},${topY}`;
+```
+Each layer uses s = its stroke-ish width (slight curve offsets) — approximates layered strokes offsets. Fine.
+
+Then base foot:
+```
+      html += `<ellipse cx="${baseX}" cy="${soilY - 1}" rx="${trunkW * .7}" ry="${trunkW * .24}" fill="#8a5f3b" opacity=".55"/>`;
+```
+
+Scar & flower (wrap) as designed with mixHex & arc top highlight, then flower:
+
+Wait order: put scar AFTER trunk strokes so visible; base flare first maybe before trunk (under) or after trunk near soil overlapping bottom (roots). I'll place after trunk core before scar:
+
+```
+      // 树脚与土壤相接处的“坐根”
+      html += `<path d="M${baseX - trunkW*.8},${soilY-2} Q ${baseX - trunkW*1.5},${soilY+2} ${baseX - trunkW*1.7},${soilY+5}" stroke="#9a6c44" stroke-width="1.6" fill="none" stroke-linecap="round" opacity=".4"/>`
+```
+Maybe unnecessary; but adds ground anchor. two symmetric rootlets small. Eh include small.
+
+Simplify not overdo: base flare ellipse + scar + flower.
+
+Scar code:
+```
+      // 结疤：旧痕的颜色随成长渐向“新皮色”过渡，被新树皮温柔包住
+      const wrap = Math.max(0, Math.min(1, hr));
+      const scY = soilY - trunkH * 0.26;
+      const scarRx = Math.max(trunkW * .26, trunkW * .3 + g * .4);
+      const scarA = Math.max(.05, .40 - g * .22);
+      const oldCol = '#5e3f28', newCol = '#c89a70';
+      const innerCol = mixHex(oldCol, newCol, .18 + wrap * .85);
+      const ry = scarRx * .88;
+      // 外圈：新皮愈合的柔晕
+      html += `<ellipse cx="${baseX}" cy="${scY}" rx="${(scarRx * 1.9).toFixed(1)}" ry="${(ry * 1.9).toFixed(1)}" fill="url(#scarRing)" opacity="${(Math.min(.5, scarA + .1)).toFixed(2)}"/>`;
+      // 旧痕本体
+      html += `<ellipse cx="${baseX}" cy="${scY}" rx="${scarRx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${innerCol}" opacity="${scarA.toFixed(2)}"/>`;
+      // 顶缘一点受光：仿佛新皮从上方轻轻覆过来
+      html += `<path d="M${(baseX - scarRx).toFixed(1)},${(scY - 1).toFixed(1)} A ${scarRx.toFixed(1)} ${(ry * .75).toFixed(1)} 0 0 1 ${(baseX + scarRx).toFixed(1)},${(scY - 1).toFixed(1)}" fill="none" stroke="${mixHex('#d3ac86', '#e6c9a8', wrap)}" stroke-width="1.1" stroke-linecap="round" opacity="${Math.min(.85, scarA * 1.6).toFixed(2)}"/>`;
+
+      // 疤旁的小花：越舒展颜色越明媚，但保持低饱和
+      html += flowerHTMLAt(baseX + trunkW + 2.5, scY - 2, 5.5 + hr * 6, 1.0, g);
+```
+But original scar grew with g: rx = trunkW*.3 + g*1.2 max at 1: 3.45+1.2=4.65 fine. With g=1 & trunkW 11.5 → my new scarRx=max(3, 3.45+0.4)=3.85 slightly small relative trunk; it's healed small knot good.
+
+Crown:
+```
+      const crownCy = topY - 6 - hr * 14;
+      const crownR = 14 + hr * 34;
+      // 底层淡染（让树冠有“晕开”的水彩底）
+      html += `<circle cx="${baseX}" cy="${(crownCy + 2).toFixed(1)}" r="${(crownR * 1.55).toFixed(1)}" fill="url(#leafG1)" opacity=".5"/>`;
+      // 主叶团（羽化边缘，彼此叠出层次）
+      const blobs = Math.round(6 + hr * 26);
+      for (let i = 0; i < blobs; i++) {
+        const a = (i / blobs) * Math.PI * 2 + 0.4;
+        const rr = crownR * (0.5 + 0.5 * (i % 3) * 0.24);
+        const bx = baseX + Math.cos(a) * rr;
+        const by = crownCy + Math.sin(a) * rr * 0.8;
+        const s = crownR * (0.38 + ((i * 7) % 5) * 0.12);
+        const gid = (i % 5 === 0) ? 'url(#leafG2)' : ((i % 3 === 0) ? 'url(#leafG1)' : 'url(#leafG0)');
+        html += `<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${s.toFixed(1)}" fill="${gid}"/>`;
+      }
+      // 顶部团冠与嫩芽
+      html += `<circle cx="${baseX}" cy="${(crownCy + 8).toFixed(1)}" r="${(crownR * 1.02).toFixed(1)}" fill="url(#leafG0)" opacity=".95"/>`;
+      html += `<circle cx="${baseX}" cy="${(crownCy - crownR * 0.5).toFixed(1)}" r="${(4 + hr * 10).toFixed(1)}" fill="url(#leafG1)"/>`;
+```
+blobs higher count maybe 32 max plus halo - static. gradient circle cost modest.
+
+Wait gradients alpha near center .95 but as blobs only r smaller than visual lump they’re still colorful. good.
+
+Flowers among crown same as before replacing call to flowerHTMLAt (kept).
+
+Gold fruit:
+```
+      const goldN = Math.min(goldFruitIntended(), 3);
+      if (goldN > 0 && hr > 0.1) {
+        for (let k = 0; k < goldN; k++) {
+          const tilt = -0.4 + k * 0.4;
+          const gx = baseX + Math.cos(tilt) * crownR * 0.55;
+          const gy = crownCy + 6 + Math.sin(tilt) * crownR * 0.5;
+          html += goldFruit(gx, gy, 5.2 + hr * .6);
+        }
+      }
+```
+
+And root.innerHTML = html (no gradient injection). Set aria label: after building, we set svg aria by stage label maybe:
+```
+    const svg = document.getElementById('treeSvg');
+    if (svg) svg.setAttribute('aria-label', stageAt(g).label);
+```
+Set inside renderTree regardless.
+
+Add `renderTree` also ensure not used before? stageAt exists.
+
+Provide new goldFruit fn & flowerHTMLAt after renderTree.
+
+Let me also include memory accent: skip.
+
+Also soil soft ellipse uses filter url(#soft) defined in defs (still exists). ok.
+
+But wait soilY bottom ellipse with blur extends maybe clipped by svg viewbox bottom 440 ok cy411 ry16 => within.
+
+Overflow visible anyway.
+
+One issue: gradients leafG0 etc referenced from within root innerHTML—they are in sibling defs; fine.
+
+Stage at g: renderTree receives float; after settle g in [0,1]. good.
+
+Now overlay code modifications.
+
+Add const near top after `$`:
+```
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+```
+Overlay helpers:
+```
+  function showOverlay(el) {
+    el.hidden = false;
+    if (reducedMotion) { el.classList.add('show'); return; }
+    el.classList.remove('show');
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  }
+  function hideOverlay(el, done) {
+    el.classList.remove('show');
+    if (reducedMotion) { el.hidden = true; done && done(); return; }
+    const finish = () => { el.hidden = true; done && done(); };
+    const onEnd = (e) => { if (e.target !== el) return; el.removeEventListener('transitionend', onEnd); finish(); };
+    el.addEventListener('transitionend', onEnd);
+    setTimeout(() => { el.removeEventListener('transitionend', onEnd); finish(); }, 600);
+  }
+```
+transitionend fires for each transitioning property on el (opacity & visibility?) visibility transition on el triggers transitionend maybe when applied; visibility transition with delay linear .45s triggers end event after .45? We transition visibility 0s linear .45s during closing (opacity transition .45). The close CSS: .overlay base has `transition: opacity .45s..., visibility 0s linear .45s;` when removing .show, we go from .show (visibility visible, transition visibility 0s) to base with visibility hidden after .45s. transitionend for visibility might fire at .45 too. Both opacity & visibility end events target el at similar time => finish called twice potentially: guard with `finished` flag:
+```
+    let fin=false; const finish=()=>{ if(fin)return; fin=true; el.hidden=true; done&&done(); };
+```
+Set only once.
+
+openBreath now:
+```
+  function openBreath() {
+    showOverlay($('breathOverlay'));
+    const word=...
+```
+closeBreath:
+```
+  function closeBreath() {
+    breathStop = true;
+    breathTimers.forEach(clearTimeout);
+    breathTimers = [];
+    hideOverlay($('breathOverlay'));
+    breathStop = false;
+  }
+```
+Hmm breathStop set false right after hide; but breathing cycle maybe not re-run since overlay closed. fine. Actually current original sets breathStop false immediately too.
+
+But overlay backdrop click closes breath via closeBreath inside handler, fine.
+
+openFeel: `showOverlay($('feelOverlay')); renderMood();`
+
+feelClose button event: change to hideOverlay($('feelOverlay')).
+recordBetter: replace `$('feelOverlay').hidden = true;` with hideOverlay($('feelOverlay'));
+overlay backdrop binding replace.
+
+Toast: reorder: after element create set role/aria-live:
+```
+      el.className='toast'; el.setAttribute('role','status'); el.setAttribute('aria-live','polite');
+```
+Remove bottom `_st` injection & keep nothing else.
+
+Particles loopP change:
+```
+  let PRAF=null, lastP=0;
+  function loopP(ts) {
+    cancelAnimationFrame(PRAF);
+    if (document.hidden) { PRAF = requestAnimationFrame(loopP); return; }
+    if (reducedMotion) { drawStaticP(); return; }
+    if (ts - lastP >= 33) {
+      lastP = ts;
+      Pctx && Pctx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
+      if (isNight()) drawStarField(Pctx);
+    }
+    PRAF = requestAnimationFrame(loopP);
+  }
+  function drawStaticP(){
+    Pctx && Pctx.clearRect(0,0,particleCanvas.width,particleCanvas.height);
+    if (isNight()) drawStarField(Pctx, true);
+  }
+```
+drawStarField needs param to disable twinkle? static stars alpha via constant .5 no time. modify signature drawStarField(c, stat) where tw computed if stat → fixed 0.6 etc. If reduced & night static draws once at open; but theme may change at run rarely; acceptable (also they refresh only at visibility). Keep: drawStaticP called in loop then stop scheduling.
+
+Note initParticles called regardless; with reducedMotion we don't start loopP rAF: init:
+```
+  function initParticles(){ ...; if(reducedMotion){ drawStaticP(); return;} loopP(); }
+```
+Also resize on reduced redraw static: listener: `window.addEventListener('resize', ()=> reducedMotion? drawStaticP(): resizeP())` original adds resizeP only; resizeP sets canvas dims; for reduced need redraw. Implement resizeP keeps dims; add separate handler:
+```
+  window.addEventListener('resize', () => { resizeP(); if (reducedMotion) drawStaticP(); });
+```
+
+loopP uses performance timestamps param from rAF automatically.
+
+timeOfDay copy unchanged; night text brightened via CSS.
+
+Also gentleWhisper time of day: unchanged.
+
+setMuted update aria-pressed & text. Update bind mute: aria-pressed attr.
+
+mute button label visible content '🔊' no text. At reduced still.
+
+Focus for overlay maybe skip focusing to avoid messing; we already add role dialog; fine skip to reduce risk of focus outline flash. Actually skip: not adding to avoid changing UX.
+
+Now possible references: `toastTimers` & etc unchanged.
+
+Edge: hideOverlay calls done? feelClose doesn't need. For recordBetter no done needed.
+
+Also in bindEvents we currently map overlays and in click: if (e.target===ov) { ov.hidden=true; if breath closeBreath } → change to:
+```
+      ov.addEventListener('click', (e) => {
+        if (e.target !== ov) return;
+        if (ov === $('breathOverlay')) closeBreath();
+        else hideOverlay(ov);
+      });
+```
+
+Now DOMContentLoaded → start; the removed style injection block entirely. Ensure .toast style present in css (yes). Remove `_st` code lines.
+
+Let me perform edits with exact strings. There are several; do sequentially.
+
+Edit 1: add reducedMotion const after `const $ =` line.
+[0m← [0mEdit app.js
+Index: /tmp/oc-tree/app.js
+===================================================================
+--- /tmp/oc-tree/app.js
++++ /tmp/oc-tree/app.js
+@@ -50,8 +50,10 @@
+ // “比昨天好一点”所需次数 => 结金果
+ const BETTER_NEED = 7;
+ 
+ const $ = (id) => document.getElementById(id);
++// 尊重“减少动效”：动画只做渲染层降级，不影响任何功能
++const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+ 
+ /* ---------------- 状态 ---------------- */
+ let state = load();
+ 
+
+[0m
+Now app.js — all changes are rendering/animation-layer only. Start with the reduced-motion flag and overlay helpers.
+Thinking: Now the renderTree big rewrite. Locate original text from `function renderTree(g) {` until before `  // 昼夜背景/粒子` section that contains hourNow etc. Let me replace lines with old text precisely. Original body lines 207-325 inclusive including sphere & flowerHTMLAt functions. We'll replace entire chunk.
+
+Let me build the new chunk with oldString copied from file (need exact). The old block text is large; easier target: from `function renderTree(g) {` up to end of flowerHTMLAt function before comment `// 金果数判定`. I'll fetch from file to ensure exact.
+[0m→ [0mRead app.js[90m [offset=203, limit=130][0m
+Thinking: Now I'll replace block from line 209 to 327 with the new implementation.
+
+Let me construct oldString exactly spanning the renderTree + sphere + flowerHTMLAt functions, then newString.
+[0m
+[0m← [0mEdit app.js
+Index: /tmp/oc-tree/app.js
+===================================================================
+--- /tmp/oc-tree/app.js
++++ /tmp/oc-tree/app.js
+@@ -213,116 +213,148 @@
+   const baseX = 160;        // 树干根部 x（画布中心）
+   const soilY = 408;        // 土壤基线 y
+   let html = '';
+ 
+-  // 土壤
+-  html += `<ellipse cx="${baseX}" cy="${soilY}" rx="92" ry="12" fill="#8a6a4e" opacity=".8"/>`;
+-  html += `<ellipse cx="${baseX}" cy="${soilY}" rx="72" ry="9" fill="url(#soilgrad)" opacity=".85"/>`;
++  // —— 土壤：软影 + 受光土丘，几层渐变叠出更立体、更透气的水彩感 ——
++  html += `<ellipse cx="${baseX}" cy="${soilY + 3}" rx="108" ry="16" fill="#5d4a33" opacity=".20" filter="url(#soft)"/>`;
++  html += `<ellipse cx="${baseX}" cy="${soilY}" rx="90" ry="13" fill="#8a6a4e" opacity=".45"/>`;
++  html += `<ellipse cx="${baseX}" cy="${soilY - 1}" rx="76" ry="11" fill="url(#soilgrad)" opacity=".95"/>`;
++  html += `<ellipse cx="${baseX}" cy="${soilY - 3}" rx="54" ry="6" fill="url(#soilTop)" opacity=".85"/>`;
+ 
+   // 参数化高度/宽度：g=0 由种子步进
+   const trunkH = 20 + g * 165;   // 20..185
+   const trunkW = 2.5 + g * 9;    // 主干粗
+ 
+   if (g < 0.001) {
+     // —— 种子阶段：土里一颗种子（轻声提醒）——
+-    html += `<ellipse cx="${baseX}" cy="${soilY - 4}" rx="8" ry="4.4" fill="#b78a52"/>`;
+-    html += `<ellipse cx="${baseX - .4}" cy="${soilY - 5.2}" rx="2.6" ry="4.4" fill="#c49a64" opacity=".9"/>`;
++    html += `<ellipse cx="${baseX}" cy="${soilY - 2}" rx="10" ry="2.8" fill="#5d4a33" opacity=".4"/>`;
++    html += `<ellipse cx="${baseX}" cy="${soilY - 5}" rx="8" ry="4.6" fill="#b78a52"/>`;
++    html += `<ellipse cx="${baseX - .5}" cy="${soilY - 6.2}" rx="2.7" ry="4.3" fill="#c9a26b" opacity=".95"/>`;
++    html += `<circle cx="${(baseX - 2.6).toFixed(1)}" cy="${(soilY - 6.6).toFixed(1)}" r="1.1" fill="#f6e9d2" opacity=".8"/>`;
+     html += `<title>一颗种子，正在土里安静歇着。慢慢来，它会知道的。</title>`;
+ 
+   } else if (g < 0.12) {
+     // —— 发芽→小苗：短茎 + 子叶/初叶（高度随 g 起，0.12 时已 ~40）——
+     const h = 4 + g * 55;              // 4..~11
+     const tipY = soilY - h;
+-    html += `<line x1="${baseX}" y1="${soilY}" x2="${baseX}" y2="${tipY}"`
++    html += `<line x1="${baseX}" y1="${soilY + 1}" x2="${baseX}" y2="${tipY}"`
+            + ` stroke="#7f9c70" stroke-width="3" stroke-linecap="round"/>`;
+-    // 子叶
+-    html += `<ellipse cx="${baseX - 7}" cy="${tipY - 1}" rx="6" ry="9" fill="#b9d6a6" opacity=".95" transform="rotate(32 ${baseX - 7} ${tipY - 1})"/>`;
+-    html += `<ellipse cx="${baseX + 7}" cy="${tipY - 1}" rx="6" ry="9" fill="#a8cba0" opacity=".95" transform="rotate(-32 ${baseX + 7} ${tipY - 1})"/>`;
++    html += `<ellipse cx="${baseX}" cy="${soilY - 1}" rx="${(3 + g * 6).toFixed(1)}" ry="1.6" fill="#6f9c70" opacity=".35"/>`;
++    // 两片初叶：羽化渐变的“水彩瓣”
++    html += `<ellipse cx="${baseX - 7}" cy="${tipY - 1}" rx="7" ry="10" fill="url(#leafG0)" opacity=".95" transform="rotate(30 ${baseX - 7} ${tipY - 1})"/>`;
++    html += `<ellipse cx="${baseX + 7}" cy="${tipY - 1}" rx="7" ry="10" fill="url(#leafG1)" opacity=".95" transform="rotate(-30 ${baseX + 7} ${tipY - 1})"/>`;
+ 
+   } else {
+     // —— 小苗→树荫：木主干 + 结疤 + 树冠 + (结果/金果) ——
+     const topY = soilY - trunkH;
+     const hr = Math.max(0, g - 0.12) / 0.88; // 归一化 0..1（从小苗起算）
+ 
+-    // 1) 木主干（微弯）
+-    html += `<path d="M${baseX - trunkW / 2},${soilY} C ${baseX - trunkW},${soilY - trunkH * .35} ${baseX + trunkW},${soilY - trunkH * .6} ${baseX},${topY}"
+-             fill="none" stroke="#8a5f3b" stroke-width="${trunkW}" stroke-linecap="round" stroke-linejoin="round"/>`;
++    // 1) 主干：一“晕”两“笔”叠色，边缘微微洇开、不呆板
++    const trunkP = (s) => `M${(baseX - s / 2).toFixed(1)},${soilY} C ${(baseX - s).toFixed(1)},${(soilY - trunkH * .35).toFixed(1)} ${(baseX + s).toFixed(1)},${(soilY - trunkH * .6).toFixed(1)} ${baseX},${topY}`;
++    html += `<path d="${trunkP(trunkW * 1.9)}" fill="none" stroke="#a97c50" stroke-width="${(trunkW * 1.45).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" opacity=".25"/>`;
++    html += `<path d="${trunkP(trunkW * 1.15)}" fill="none" stroke="#9a6c44" stroke-width="${(trunkW * 1.0).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>`;
++    html += `<path d="${trunkP(trunkW)}" fill="none" stroke="#8a5f3b" stroke-width="${(trunkW * .72).toFixed(1)}" stroke-linecap="round" stroke-linejoin="round" opacity=".95"/>`;
++    // 受光细边（左上光源）
++    html += `<path d="${trunkP(trunkW * .4)}" fill="none" stroke="#c39a6e" stroke-width="${Math.max(1, trunkW * .14).toFixed(1)}" stroke-linecap="round" opacity=".5"/>`;
++    // 树脚坐根
++    html += `<ellipse cx="${baseX}" cy="${soilY - 1}" rx="${(trunkW * .85).toFixed(1)}" ry="${(trunkW * .3).toFixed(1)}" fill="#7c5636" opacity=".8"/>`;
+ 
+-    // 2) 结疤：树干下 1/4 处；随成长渐被新皮包裹（透明度降、边缘柔和）
++    // 2) 结疤：颜色随成长由深木色渐向“新皮色”，被新树皮温柔包住
++    const wrap = Math.max(0, Math.min(1, hr));
+     const scY = soilY - trunkH * 0.26;
+-    const scarRx = trunkW * 0.30 + g * 1.2;
+-    const scarAlpha = Math.max(.04, .40 - g * .26);
+-    html += `<ellipse cx="${baseX}" cy="${scY}" rx="${scarRx.toFixed(1)}" ry="${(scarRx * 0.9).toFixed(1)}" fill="#5e3f28" opacity="${scarAlpha.toFixed(2)}"/>`;
++    const scarRx = Math.max(2.2, trunkW * .30 + g * .4);
++    const scarA = Math.max(.06, .40 - g * .24);
++    const ry = scarRx * .88;
++    const innerCol = mixHex('#5e3f28', '#c89a70', .18 + wrap * .82);
++    // 外圈：新皮愈合的柔晕
++    html += `<ellipse cx="${baseX}" cy="${scY}" rx="${(scarRx * 1.9).toFixed(1)}" ry="${(ry * 1.9).toFixed(1)}" fill="url(#scarRing)" opacity="${Math.min(.55, scarA + .12).toFixed(2)}"/>`;
++    // 旧痕本体
++    html += `<ellipse cx="${baseX}" cy="${scY}" rx="${scarRx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="${innerCol}" opacity="${scarA.toFixed(2)}"/>`;
++    // 顶缘一道受光弧：像新皮从上方轻轻覆过来
++    html += `<path d="M${(baseX - scarRx).toFixed(1)},${(scY - 1).toFixed(1)} A ${scarRx.toFixed(1)} ${(ry * .72).toFixed(1)} 0 0 1 ${(baseX + scarRx).toFixed(1)},${(scY - 1).toFixed(1)}" fill="none" stroke="${mixHex('#d3ac86', '#e9cbaa', wrap)}" stroke-width="1.1" stroke-linecap="round" opacity="${Math.min(.9, scarA * 1.5).toFixed(2)}"/>`;
+ 
+-    // 3) 疤旁的小花：几乎从一开始就静静开放（旧的痕迹旁有了新的生命）
+-    //    g>=0.13 起即在疤侧开一朵小花，随成长更舒展
+-    html += flowerHTMLAt(baseX + trunkW + 1.5, scY - 1, 5 + hr * 6, 1.0, g);
++    // 3) 疤旁的小花：旧的痕迹旁有了新的生命，越舒展越明朗（保持低饱和）
++    html += flowerHTMLAt(baseX + trunkW + 2.5, scY - 2, 5.5 + hr * 6, 1.0, g);
+ 
+-    // 4) 树冠（多层水彩圆）：叶子数随 hr 增加
++    // 4) 树冠：底层淡染 + 羽化叶团，水彩“晕开”的层次
+     const crownCy = topY - 6 - hr * 14;          // 树冠中心（略在顶梢上方）
+     const crownR = 14 + hr * 34;                 // 树冠展开半径
+-    const leafColor0 = '#9cc79b', leafA = '#b7d5ac', leafB = '#8ab08c';
+-    // 外圈叶团（越多越茂）
+-    const blobs = Math.round(5 + hr * 22);
++    // 底层淡染（树的呼吸气）
++    html += `<circle cx="${baseX}" cy="${(crownCy + 3).toFixed(1)}" r="${(crownR * 1.5).toFixed(1)}" fill="url(#leafG1)" opacity=".5"/>`;
++    const blobs = Math.round(6 + hr * 26);
+     for (let i = 0; i < blobs; i++) {
+       const a = (i / blobs) * Math.PI * 2 + 0.4;
+-      const rr = crownR * (0.5 + 0.5 * (i % 3) * 0.22);
++      const rr = crownR * (0.5 + 0.5 * (i % 3) * 0.24);
+       const bx = baseX + Math.cos(a) * rr;
+       const by = crownCy + Math.sin(a) * rr * 0.8;
+-      const s = crownR * (0.34 + ((i * 7) % 5) * 0.10);
+-      const col = (i % 5 === 0) ? leafB : ((i % 3 === 0) ? leafA : leafColor0);
+-      html += `<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${s.toFixed(1)}" fill="${col}" opacity=".85"/>`;
++      const s = crownR * (0.36 + ((i * 7) % 5) * 0.12);
++      const gid = (i % 5 === 0) ? 'url(#leafG2)' : ((i % 3 === 0) ? 'url(#leafG1)' : 'url(#leafG0)');
++      html += `<circle cx="${bx.toFixed(1)}" cy="${by.toFixed(1)}" r="${s.toFixed(1)}" fill="${gid}"/>`;
+     }
+-    // 顶冠圆
+-    html += `<circle cx="${baseX}" cy="${(crownCy + 6).toFixed(1)}" r="${(crownR * 0.9).toFixed(1)}" fill="${leafColor0}" opacity=".92"/>`;
+-    // 顶梢嫩芽点缀
+-    html += `<circle cx="${baseX}" cy="${(crownCy - crownR * 0.55).toFixed(1)}" r="${(4 + hr * 9).toFixed(1)}" fill="${leafA}" opacity=".9"/>`;
++    // 顶冠 + 嫩芽
++    html += `<circle cx="${baseX}" cy="${(crownCy + 8).toFixed(1)}" r="${(crownR * 1.0).toFixed(1)}" fill="url(#leafG0)" opacity=".95"/>`;
++    html += `<circle cx="${baseX}" cy="${(crownCy - crownR * 0.5).toFixed(1)}" r="${(4 + hr * 10).toFixed(1)}" fill="url(#leafG1)"/>`;
+ 
+-    // 5) 开花阶段显花苞/小花（可选点缀，穿插在叶间）——疤旁小花已足够温柔，这里轻点缀。
++    // 5) 开花阶段穿插的小花
+     if (stageAt(g).key === 'bloom' || stageAt(g).key === 'fruit' || stageAt(g).key === 'canopy') {
+       const nFl = Math.min(5, Math.floor((hr - .45) / .1) + 3);
+       for (let i = 0; i < nFl; i++) {
+         const a = 0.6 + i * 1.25;
+         html += flowerHTMLAt(baseX + Math.cos(a) * crownR * 0.7, crownCy + Math.sin(a) * crownR * 0.55, 3.5 + (i % 2), 0.9, g);
+       }
+     }
+ 
+-    // 6) 金果：betterCount 累计每满 7 次亮一颗（最多亮 3 颗叙事，摆在树冠前）
++    // 6) 金果：betterCount 每满 7 次亮一颗（最多 3 颗叙事），带一圈柔柔的光
+     const goldN = Math.min(goldFruitIntended(), 3);
+     if (goldN > 0 && hr > 0.1) {
+       for (let k = 0; k < goldN; k++) {
+         const tilt = -0.4 + k * 0.4;
+         const gx = baseX + Math.cos(tilt) * crownR * 0.55;
+         const gy = crownCy + 6 + Math.sin(tilt) * crownR * 0.5;
+-        html += sphere(gx, gy, 5.4, '#e7c64f', '#fff6d8');
++        html += goldFruit(gx, gy, 4.8 + hr * .8);
+       }
+     }
+   }
+ 
+-  root.innerHTML = `
+-    <radialGradient id="soilgrad" cx="50%" cy="40%" r="60%">
+-      <stop offset="0%" stop-color="#9c7a55"/><stop offset="100%" stop-color="#6f5234"/>
+-    </radialGradient>` + html;
++  root.innerHTML = html;
++
++  // 让整棵树对自己轻轻报个名字（无障碍：非纯视觉传达阶段）
++  const svg = $('treeSvg');
++  if (svg) svg.setAttribute('aria-label', stageAt(g).label);
+ }
+ 
+-// 小圆形（带高光）的水彩果/花苞
+-function sphere(cx, cy, r, base, hl) {
+-  let s = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${base}" stroke="rgba(255,255,255,.6)" stroke-width="${(r * 0.22).toFixed(1)}"/>`;
+-  s += `<circle cx="${(cx - r * 0.3).toFixed(1)}" cy="${(cy - r * 0.3).toFixed(1)}" r="${(r * 0.28).toFixed(1)}" fill="${hl}" opacity=".9"/>`;
++// 颜色插值：把一种十六进制色柔和地过渡到另一种（如疤→新皮）
++function mixHex(a, b, t) {
++  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
++  const ar = pa >> 16, ag = (pa >> 8) & 255, ab = pa & 255;
++  const br = pb >> 16, bg = (pb >> 8) & 255, bb = pb & 255;
++  const mr = Math.round(ar + (br - ar) * t);
++  const mg = Math.round(ag + (bg - ag) * t);
++  const mb = Math.round(ab + (bb - ab) * t);
++  return '#' + ((1 << 24) + (mr << 16) + (mg << 8) + mb).toString(16).slice(1);
++}
++
++// 金果：柔和光晕 + 果实 + 一点高光（发光但不刺眼）
++function goldFruit(cx, cy, r) {
++  let s = `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r * 2).toFixed(1)}" fill="url(#goldHalo)"/>`;
++  s += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r.toFixed(1)}" fill="url(#goldFruit)" stroke="rgba(255,255,255,.5)" stroke-width="1"/>`;
++  s += `<circle cx="${(cx - r * .32).toFixed(1)}" cy="${(cy - r * .34).toFixed(1)}" r="${(r * .3).toFixed(1)}" fill="#fdf4d2" opacity=".95"/>`;
+   return s;
+ }
+ 
+-// 一朵 5 瓣小花，带中心点；scale 随时间(hr)柔和放大
++// 一朵 5 瓣小花：羽化花瓣 + 水彩花心 + 一点受光；随成长更舒展、颜色更明朗
+ function flowerHTMLAt(cx, cy, r, alpha, g) {
+   const petals = 5;
++  const warm = Math.max(0, Math.min(1, (g - .12) / .88));   // 越长大越“明亮一点”
+   let out = `<g opacity="${alpha.toFixed(2)}">`;
+   for (let i = 0; i < petals; i++) {
+     const a = (i / petals) * Math.PI * 2 - Math.PI / 2;
+-    const px = cx + Math.cos(a) * r * 0.72;
+-    const py = cy + Math.sin(a) * r * 0.72;
+-    out += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(r * 0.85).toFixed(1)}" fill="#f3cfc3" opacity=".8"/>`;
++    const px = cx + Math.cos(a) * r * .74;
++    const py = cy + Math.sin(a) * r * .74;
++    out += `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(r * .92).toFixed(1)}" fill="${i % 2 ? 'url(#petalA)' : 'url(#petalB)'}"/>`;
+   }
+-  out += `<circle cx="${cx}" cy="${cy}" r="${(r * 0.5).toFixed(1)}" fill="#f7b98a"/>`;
++  out += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${(r * .56).toFixed(1)}" fill="url(#heartG)"/>`;
++  out += `<circle cx="${(cx - r * .16).toFixed(1)}" cy="${(cy - r * .18).toFixed(1)}" r="${(r * .15).toFixed(1)}" fill="#fff" opacity="${(0.5 + warm * .3).toFixed(2)}"/>`;
+   out += `</g>`;
+   return out;
+ }
+ 
+
+[0m
+Thinking: Note: goldFruit halo r*2 with goldHalo gradient alpha from .8 center. r about 5 → halo 10 radius, halo center alpha .8 strong-ish. But gradient is separate radial with 0.8 at center 0% which extends to maybe heavy; fruit covers center anyway (radius5). Could look like glow ring beyond fruit edges fading. ok.
+
+Wait, blossom petal with gradient leaf? no petal uses petalA/B gradients fine.
+
+But I removed `sphere` helper; any other usage of sphere elsewhere? Only gold previously. Now unused; check for other references. grep later.
+
+Now overlay helpers & usage modifications. openBreath & closeBreath & openFeel region read current file portion around those functions to edit precisely (line numbers shifted).
+[0m→ [0mRead app.js[90m [offset=455, limit=130][0m
+Thinking: There's a subtle pre-existing bug: breath ring transitions — I used keyframes `inhaleR` scale from .76→1 over 4s. But wait the ring scale physically grows each inhale but original semantic was inhale ring expands? Actually inhale set scale 1.0 and exhale scale .78 originally meaning inhale bigger (fills more air). Breath: inhale (breathing in) should expand = scale to 1 from smaller baseline, then exhale shrink .76. My keyframes inhaleR from .76→1 (grow during inhale) then exhaleR 1→.76 matches breathing! Wait but .breath-ring base is full-size; at open inhale begins scale .76→1 over 4s which visually inhale ring expands: good.
+
+Now do the edits: openBreath showOverlay, closeBreath hideOverlay, openFeel showOverlay, recordBetter hideOverlay.
+
+Add overlay helpers before openBreath section (after toast fn maybe). Add to modify toast to role.
+
+Also update setMuted to set aria-pressed & label with text? visible label has icon only; set textContent = '🔊' etc but HTML now wrap in span; we should not destroy span. Change setMuted to update span content & aria-pressed + aria-label. Simpler: in HTML I kept `aria-label="声音开关"`. Keep icon span content update. Update function accordingly using querySelector.
+
+Let me apply edits.
+[0m
+[0m← [0mEdit app.js
+Index: /tmp/oc-tree/app.js
+===================================================================
+--- /tmp/oc-tree/app.js
++++ /tmp/oc-tree/app.js
+@@ -480,10 +480,14 @@
+   soundOn = false;
+ }
+ function setMuted(m) {
+   state.muted = m; save();
+-  if (m) { stopNoise(); audioCtx && audioCtx.suspend && audioCtx.suspend(); $('muteBtn').textContent = '🔇'; }
+-  else { ensureAudio(); $('muteBtn').textContent = '🔊'; }
++  const btn = $('muteBtn');
++  const ico = btn && btn.querySelector('.dock-ico');
++  if (m) { stopNoise(); audioCtx && audioCtx.suspend && audioCtx.suspend(); }
++  else { ensureAudio(); }
++  if (ico) ico.textContent = m ? '🔇' : '🔊';
++  if (btn) btn.setAttribute('aria-pressed', m ? 'true' : 'false');
+ }
+ 
+ /* ---------------- Toast（轻提示） ---------------- */
+ let toastEl = null, toastTimers = [];
+@@ -491,8 +495,10 @@
+   let el = toastEl;
+   if (!el) {
+     el = document.createElement('div');
+     el.className = 'toast';
++    el.setAttribute('role', 'status');
++    el.setAttribute('aria-live', 'polite');
+     document.body.appendChild(el);
+     toastEl = el;
+   }
+   el.textContent = msg;
+@@ -501,12 +507,29 @@
+   let tt = setTimeout(() => el.classList.remove('show'), 2600);
+   toastTimers = [tt];
+ }
+ 
++/* ---------------- 浮层开合（只动视觉，保留 hidden 语义） ---------------- */
++function showOverlay(el) {
++  el.hidden = false;
++  if (reducedMotion) { el.classList.add('show'); return; }
++  el.classList.remove('show');
++  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
++}
++function hideOverlay(el) {
++  el.classList.remove('show');
++  if (reducedMotion) { el.hidden = true; return; }
++  let finished = false;
++  const finish = () => { if (finished) return; finished = true; el.hidden = true; };
++  const onEnd = (e) => { if (e.target !== el) return; el.removeEventListener('transitionend', onEnd); finish(); };
++  el.addEventListener('transitionend', onEnd);
++  setTimeout(() => { el.removeEventListener('transitionend', onEnd); finish(); }, 600);
++}
++
+ /* ---------------- 呼吸引导 ---------------- */
+ let breathStop = false, breathTimers = [];
+ function openBreath() {
+-  $('breathOverlay').hidden = false;
++  showOverlay($('breathOverlay'));
+   const word = $('breathWord');
+   const tip = $('breathTip');
+   const ring = $('breathRing');
+   tip.textContent = '跟着圈，慢慢吸气 4 秒，再缓缓呼出 6 秒。';
+@@ -536,15 +559,15 @@
+ function closeBreath() {
+   breathStop = true;
+   breathTimers.forEach(clearTimeout);
+   breathTimers = [];
+-  $('breathOverlay').hidden = true;
++  hideOverlay($('breathOverlay'));
+   breathStop = false;
+ }
+ 
+ /* ---------------- 感受记录 ---------------- */
+ function openFeel() {
+-  $('feelOverlay').hidden = false;
++  showOverlay($('feelOverlay'));
+   // 今日是否已记过“比昨天好一点”
+   renderMood();
+ }
+ function todayKey() { return new Date().toDateString(); }
+
+[0m
+[0m→ [0mRead app.js[90m [limit=120, offset=612][0m
+Thinking: Now edit lines 654, 673-675, 687, 702-710 (remove injection) and recordBetter location. Find recordBetter hidden = true around line ~604-611. Let me edit bindEvents & start and removal injection.
+[0m
+[0m← [0mEdit app.js
+Index: /tmp/oc-tree/app.js
+===================================================================
+--- /tmp/oc-tree/app.js
++++ /tmp/oc-tree/app.js
+@@ -650,9 +650,9 @@
+   });
+   $('breathBtn').addEventListener('click', openBreath);
+   $('feelBtn').addEventListener('click', openFeel);
+   $('breathClose').addEventListener('click', closeBreath);
+-  $('feelClose').addEventListener('click', () => { $('feelOverlay').hidden = true; });
++  $('feelClose').addEventListener('click', () => { hideOverlay($('feelOverlay')); });
+   $('muteBtn').addEventListener('click', () => {
+     ensureAudio();
+     setMuted(!state.muted);
+   });
+@@ -670,9 +670,13 @@
+   });
+   $('betterBtn').addEventListener('click', recordBetter);
+   // 遮罩点空白关闭
+   [$('breathOverlay'), $('feelOverlay')].forEach(ov => {
+-    ov.addEventListener('click', (e) => { if (e.target === ov) ov.hidden = true; if (ov === $('breathOverlay')) closeBreath(); });
++    ov.addEventListener('click', (e) => {
++      if (e.target !== ov) return;
++      if (ov === $('breathOverlay')) closeBreath();
++      else hideOverlay(ov);
++    });
+   });
+   // 离开/隐藏自动保存
+   document.addEventListener('visibilitychange', () => { if (document.hidden) { settleGrowth(); } else { refreshAll(); } });
+ }
+
+[0m
+[0m← [0mEdit app.js
+Index: /tmp/oc-tree/app.js
+===================================================================
+--- /tmp/oc-tree/app.js
++++ /tmp/oc-tree/app.js
+@@ -687,9 +687,9 @@
+     bindEvents();
+     initParticles();
+     setTheme();
+     // 静音偏好恢复
+-    if (state.muted) $('muteBtn').textContent = '🔇';
++    if (state.muted) setMuted(true);
+     refreshAll();
+     // 欢迎语
+     const gr = $('greeting');
+     const first = state.feels && state.feels.length === 0 && state.lastWaterAt === 0;
+@@ -702,16 +702,6 @@
+     // 根据时段打招呼，温和
+     return '你来了。';
+   }
+ 
+-  // 注入 toast 样式
+-  const _st = document.createElement('style');
+-  _st.textContent = `.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(20px);
+-    background:rgba(255,255,255,.92);color:var(--ink);padding:10px 18px;border-radius:999px;
+-    font-size:.85rem;box-shadow:0 8px 24px rgba(50,60,50,.18);opacity:0;transition:.35s ease;z-index:50;
+-    max-width:80vw;pointer-events:none}
+-    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+-    body.watered .tree-svg{filter:drop-shadow(0 0 8px rgba(120,190,230,.35))} body .water-state{display:block}`;
+-  document.head.appendChild(_st);
+-
+   document.addEventListener('DOMContentLoaded', start);
+ })();
+
+[0m
+Thinking: Now recordBetter uses hidden = true at earlier lines. Look around 600-613 (shifted). Read lines 595-615.
+[0m→ [0mRead app.js[90m [limit=22, offset=597][0m
+[0m
+[0m← [0mEdit app.js
+Index: /tmp/oc-tree/app.js
+===================================================================
+--- /tmp/oc-tree/app.js
++++ /tmp/oc-tree/app.js
+@@ -606,9 +606,9 @@
+   state.hearts = state.hearts || [];
+   state.hearts.push(Date.now());
+   save();
+   trackGoldFlag();
+-  $('feelOverlay').hidden = true;
++  hideOverlay($('feelOverlay'));
+   refreshAll();
+   toast('好，比昨天好一点，这就很好。');
+ }
+ 
+
+[0m
+Thinking: Now particles throttle & reduced-motion. Let me read current initParticles etc.
+[0m→ [0mRead app.js[90m [limit=55, offset=355][0m
+[0m→ [0mRead app.js[90m [limit=50, offset=410][0m
+Thinking: Rewrite initParticles / loopP / drawStarField with throttling and reduced-motion and visibility. Keep resizeP as is, but also redraw when reduced on resize.
+[0m
+[0m← [0mEdit app.js
+Index: /tmp/oc-tree/app.js
+===================================================================
+--- /tmp/oc-tree/app.js
++++ /tmp/oc-tree/app.js
+@@ -399,44 +399,59 @@
+ function initParticles() {
+   if (!particleCanvas) return;
+   Pctx = particleCanvas.getContext('2d');
+   resizeP();
+-  window.addEventListener('resize', resizeP);
++  window.addEventListener('resize', () => { resizeP(); if (reducedMotion) drawStaticP(); });
++  if (reducedMotion) { drawStaticP(); return; }   // 尊重减少动效：画一帧安静的星野
+   loopP();
+ }
+ function resizeP() {
+   if (!Pctx) return;
+   particleCanvas.width = innerWidth;
+   particleCanvas.height = innerHeight;
+ }
+ function isNight() { const h = hourNow(); return h >= 19 || h < 6; }
+-function loopP() {
++// 静止一帧（减少动效 / 白天不空转）
++function drawStaticP() {
++  if (!Pctx) return;
++  Pctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
++  if (isNight()) drawStarField(Pctx, true);
++}
++// 后台标签页不空转；前台也压到 ~30fps，避免每帧重绘
++let lastPFrame = 0;
++function loopP(ts) {
+   cancelAnimationFrame(PRAF);
+-  Pctx && Pctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+-  if (isNight()) drawStarField(Pctx);
++  if (document.hidden) { PRAF = requestAnimationFrame(loopP); return; }
++  if (ts - lastPFrame >= 33) {
++    lastPFrame = ts;
++    if (!Pctx) return;
++    Pctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
++    if (isNight()) drawStarField(Pctx);
++  }
+   PRAF = requestAnimationFrame(loopP);
+ }
+-function drawStarField(c) {
++function drawStarField(c, stat) {
+   const { width: w, height: h } = c.canvas;
+   const ts = Date.now() / 1000;
+   const n = 60;
+   for (let i = 0; i < n; i++) {
+     const x = (i * 97) % w;
+     const y = (i * 41) % (h * 0.7);
+-    const tw = 0.4 + 0.6 * Math.abs(Math.sin(ts * 0.8 + i * 7));
++    const tw = stat ? 0.62 : 0.4 + 0.6 * Math.abs(Math.sin(ts * 0.8 + i * 7));
+     c.globalAlpha = tw * 0.9;
+     c.fillStyle = '#f5f2d8';
+     c.beginPath();
+     c.arc(x, y, i % 5 === 0 ? 1.7 : 1.0, 0, Math.PI * 2);
+     c.fill();
+   }
+-  // 萤火虫（缓慢飘）
++  // 萤火虫（缓慢飘；stat 时静止）
+   const fm = 12;
+   for (let i = 0; i < fm; i++) {
+     const id = i * 53;
+-    const x = ((id * 0.37) % w) + Math.sin(ts * 0.3 + i) * 22;
+-    const y = (h * 0.35) + ((i * 67) % (h * 0.5)) + Math.cos(ts * 0.24 + i * 3) * 18;
+-    const a = 0.18 + 0.5 * Math.abs(Math.sin(ts * (0.7 + (i % 3) * 0.2) + i));
++    const x = stat ? ((id * 0.37) % w) : (((id * 0.37) % w) + Math.sin(ts * 0.3 + i) * 22);
++    const y0 = (h * 0.35) + ((i * 67) % (h * 0.5));
++    const y = stat ? y0 : (y0 + Math.cos(ts * 0.24 + i * 3) * 18);
++    const a = stat ? 0.42 : 0.18 + 0.5 * Math.abs(Math.sin(ts * (0.7 + (i % 3) * 0.2) + i));
+     c.globalAlpha = a;
+     c.fillStyle = '#eaff9a';
+     c.beginPath(); c.arc(x, y, 1.9, 0, Math.PI * 2); c.fill();
+     c.globalAlpha = a * 0.4;
+
+[0m
+Thinking: Wait: reduced motion initParticles drawStaticP returns without scheduling loop, fine. If not reduced, loopP started. In loopP during day, we clear each ~30fps; that's fine but still 30fps empty clearing. Acceptable small; but could reduce further to ~4fps when day & non-night: we could schedule setTimeout. Simplify: if not night and not reduced, we only need clear once since nothing drawn; avoid repeat by clearing then scheduling check every second? Implement low-fps idle scheduling:
+
+```
+if(!isNight() && !... ) { clear once every 1000ms }
+```
+But loopP is rAF. Use setTimeout to call loopP at lower frequency: 
+
+Rewrite loopP as:
+```
+function loopP(ts){
+  cancelAnimationFrame(PRAF);
+  if (document.hidden){ PRAF=requestAnimationFrame(loopP); return; }
+  if (ts - lastPFrame < 33){ PRAF=requestAnimationFrame(loopP); return; }
+  lastPFrame = ts;
+  if (!Pctx) return;
+  if (isNight()){ Pctx.clearRect(...); drawStarField(Pctx); PRAF=requestAnimationFrame(loopP); }
+  else { Pctx.clearRect(...); } // idle: sample slowly 
+}
+```
+This is basically same. Fine current version does 30fps clear day. This is modest. Could idle at 2Hz when day with a timer but keep simple and safe.
+
+Now, a concern: rAF timestamp param ts — the first call from initParticles passes loopP with no arg => ts undefined; undefined - lastPFrame(0) = NaN < 33 false? NaN comparisons false => enters block clears fine; ok subsequent ts number. Fine but better pass performance.now(); first call `loopP()` no param: ts undefined; NaN>=33 false; skip draw; then schedules next rAF with ts. Actually then it clears? inside we skip due to NaN guard and schedule, next frames fine. On day, that first frame doesn't clear but harmless. Acceptable. Could instead call `PRAF = requestAnimationFrame(loopP)` only. Good enough.
+
+Now grep for leftover sphere references and hidden attr misuse, plus old class references. Also ensure gradient defs ids used: leafG0..2, soilgrad, soilTop, petalA/B, heartG, goldHalo, goldFruit, scarRing, soft. In index defs we defined soilTop, all. good.
+
+Check recordBetter changed path etc. grep "sphere(" ensure removed.
+[0m$ [0mcd /tmp/oc-tree && node --check app.js && echo JS_OK
+JS_OK
+[0m
+[0m✱ [0mGrep "sphere\(|hidden\s*=\s*true|textContent = '🔇'|textContent = '🔊'|treeSvg|treeRoot|moodRow|feelTitle|breathWord|aria-live"[90m in . · 7 matches[0m
+Thinking: JS syntax ok. Now check ids alignment across html & JS: get all $('...') usage and ensure ids exist.
+
+Also check CSS references all JS classes.
+
+Let me grep ids used in app.js and compare to index html ids.
+[0m
+[0m$ [0mcd /tmp/oc-tree && node -e '
+const fs=require("fs");
+const js=fs.readFileSync("app.js","utf8");
+const html=fs.readFileSync("index.html","utf8");
+const ids=new Set([...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]));
+const used=new Set([...js.matchAll(/[$]\(['"'"']([^'"'"']+)['"'"']\)/g)].map(m=>m[1]));
+const missing=[...used].filter(u=>!ids.has(u));
+console.log("ids in html:", [...ids].sort().join(", "));
+console.log("ids referenced in JS but MISSING in html:", missing);
+const classes=new Set([...js.matchAll(/classList\.(?:add|remove|toggle)\(['"'"']([^'"'"']+)['"'"']\)/g)].map(m=>m[1]));
+console.log("classes toggled by JS:", [...classes].join(", "));
+'
+ids in html: betterBtn, betterWrap, breathBtn, breathClose, breathOverlay, breathRing, breathTip, breathWord, feelBtn, feelClose, feelOverlay, feelTitle, goldFruit, goldHalo, goldNote, greeting, heartG, leafG0, leafG1, leafG2, moodRow, muteBtn, particles, petalA, petalB, pour, quietNote, scarRing, sky, soft, soilTop, soilgrad, stage, timeOfDay, treeRoot, treeSvg, waterBtn, waterState
+ids referenced in JS but MISSING in html: []
+classes toggled by JS: watering, watered, show, sel
+[0m
+Thinking: All good. Note gradient defs have ids (goldFruit, goldHalo, heartG...). My grep picked them as ids; gradient element ids used via url(#..). fine.
+
+Now verify stageAt label words: index svg aria-label default "一棵正在土里歇着的种子"; renderTree sets aria-label = stageAt(g).label (种子/发芽/小苗/小树/花苞/开花/结果/树荫). Good, no duplicate issue. But renderTree also runs on every refreshAll — includes right at start after DOMContentLoaded; svg exists.
+
+But note there is a case renderTree returns early if !root. fine.
+
+Now ensure goldFruit gradient id vs function name conflict! In JS we define function goldFruit(). And in HTML defs we have gradient with id="goldFruit". No actual conflict (different namespace). But my a11y check: ids list included 'goldFruit' & 'goldHalo' & 'heartG' etc from defs; ok.
+
+One concern: seed stage also had `<title>` inside root g. aria-label on svg overrides title anyway. ok.
+
+Now the water button visual when disabled due cooldown; note the `.water-state` now is display block always (was previously only forced display via injection which we removed & now static CSS). fine.
+
+Now possible layout: the `.pour` is a span inside `.btn-inner`; but HTML has `.btn-inner` wrapper containing span.pour + text "浇水". But water-btn original: `<span class="btn-inner"><span class="pour"...></span> 浇水</span>`. Inner span display flex. .pour uses height 18. good.
+
+Next verify CSS/JS consistency: JS removed body class 'watering' etc. fine. `document.body.classList.add('watering')` etc. still there. Watered toggling uses two classes body.
+
+Wait style: reduced-motion rule sets `*{ transition-duration: .001s }` — this also kills fade-in of overlays (ok) & .toast. Also kills sway? animation-duration .001 for everything including ring? plus I set breath-ring none. Fine. Also overrides drop animation.
+
+But also reduced: keyframe .overlay backdrop opacity: base opacity 0 + no transition basically instant; showOverlay adds show, becomes visible with .001s. hideOverlay reduced hides instantly. Great.
+
+However there is an issue: The generic `*` rule for reduced-motion kills the `.scene::before`? it's static no transition. fine.
+
+Potential unintended: reduces `.sky` background transition .001 fine.
+
+Now let me double-check the watering class removal timing plus 'watered' filter while sway animation runs: both operate on .tree-svg; watered uses filter property while base .tree-svg has filter too; during 'watered' also 'watering' still set (removes at 1500; watered added at 600 removed 1500). both apply => filter override ours only (drop shadow single replaced) fine.
+
+But `.tree-svg` also has a static drop-shadow from base rule; during watering class we animate transform while filter base. ok.
+
+Now I realize a subtle regression: The `.water-btn:disabled` previously set opacity .55 & cursor default; also hover shadow removed. fine.
+
+Another: greeting aria? aria-live for greeting absent. It changes text once on load only.
+
+Consider contrast of subline in dusk on lower area where text near top yellow-green background #e8d0a8 top to #f2e2c4. ink-soft #63746b on #f2e2c4 ~? compute quickly: probably 3.4. Actually text at top over gradient around 0-120px near top; greeting dark ok. subline maybe mid. compute cr ink-soft vs #e8d0a8.
+
+Let me also validate that water state text always present block at bottom under button might collide on tiny heights handled.
+
+Let me compute a few more contrasts & then do a visual sanity render via headless? Might not have chromium. We'll at least run http server + curl.
+
+First check chromium availability. Probably not. We'll do static checks as TASK suggests: node --check, ids, referenced resources exist, and curl server 200.
+
+Let me compute contrast pairs quickly.
+[0m$ [0mcd /tmp/oc-tree && node -e '
+function lum(hex){let c=hex.replace("#","");if(c.length===3)c=c.split("").map(x=>x+x).join("");let [r,g,b]=[0,2,4].map(i=>parseInt(c.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*r+.7152*g+.0722*b;}
+function cr(a,b){let l1=lum(a),l2=lum(b);return (Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05);}
+console.log("ink-soft/#eaf3ec",cr("#63746b","#eaf3ec").toFixed(2));
+console.log("ink-soft/#f2e2c4",cr("#63746b","#f2e2c4").toFixed(2));
+console.log("ink/#e8d0a8",cr("#42544c","#e8d0a8").toFixed(2));
+console.log("mood text/#c7dfc9",cr("#3c4a43","#c7dfc9").toFixed(2));
+console.log("water-state ink-soft on #e6efe7",cr("#63746b","#e6efe7").toFixed(2));
+console.log("quiet-note #63746b on #e3eed7",cr("#63746b","#e3eed7").toFixed(2));
+'
+which chromium chromium-browser google-chrome node 2>/dev/null; node -e "try{require.resolve('puppeteer');console.log('puppeteer')}catch(e){console.log('no-puppeteer')}"
+ink-soft/#eaf3ec 4.37
+ink-soft/#f2e2c4 3.88
+ink/#e8d0a8 5.38
+mood text/#c7dfc9 6.58
+water-state ink-soft on #e6efe7 4.21
+quiet-note #63746b on #e3eed7 4.12
+/snap/bin/chromium
+/usr/bin/chromium-browser
+/usr/bin/google-chrome
+/usr/local/bin/node
+no-puppeteer
+[0m
+Thinking: Contrast mostly fine: small body text (~4.4 AA borderline), dusk subline 3.88 slightly below 4.5 but still gentle; can nudge ink-soft darker to #5f6f66 to gain AA even over dusk #f2e2c4 ~? Let's compute but may slightly reduce "softness". body small text should reach 4.5 for AA ideally. Use #5f7067.
+
+Let me compute cr for that vs #f2e2c4 and #eaf3ec.
+[0m$ [0mnode -e '
+function lum(hex){let c=hex.replace("#","");if(c.length===3)c=c.split("").map(x=>x+x).join("");let [r,g,b]=[0,2,4].map(i=>parseInt(c.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4));return .2126*r+.7152*g+.0722*b;}
+function cr(a,b){let l1=lum(a),l2=lum(b);return (Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05);}
+for (const c of ["#5f7067","#5e6e65","#5a6b62"]) console.log(c,"on #f2e2c4",cr(c,"#f2e2c4").toFixed(2),"on #eaf3ec",cr(c,"#eaf3ec").toFixed(2),"on #e6efe7",cr(c,"#e6efe7").toFixed(2),"white",cr(c,"#fff").toFixed(2));
+'
+#5f7067 on #f2e2c4 4.11 on #eaf3ec 4.63 on #e6efe7 4.47 white 5.25
+#5e6e65 on #f2e2c4 4.22 on #eaf3ec 4.76 on #e6efe7 4.59 white 5.39
+#5a6b62 on #f2e2c4 4.43 on #eaf3ec 4.99 on #e6efe7 4.81 white 5.65
+[0m
+Thinking: #5a6b62 gives ~4.4 on dusk bg (top part brighter #f2e2c4) close to 4.5 and strong 4.99 on the common day bg. It stays softish (dark warm-grey green). Use #5a6b62 as ink-soft. This is only slightly darker than #63746b. Do it.
+
+Then also mood .sel focus etc fine.
+
+Let me update var.
+[0m← [0mEdit style.css
+Index: /tmp/oc-tree/style.css
+===================================================================
+--- /tmp/oc-tree/style.css
++++ /tmp/oc-tree/style.css
+@@ -9,9 +9,9 @@
+ --green-3: #6f946f;
+ --cream: #f9f6ee;
+ --blue-1: #d9e5f2;
+ --ink: #42544c;          /* 深墨绿：正文，温柔但可读(AA) */
+---ink-soft: #63746b;     /* 次级文字：淡背景下对比度~4.4 */
++--ink-soft: #5a6b62;     /* 次级文字：淡背景下仍有足够可读性 */
+ --trunk: #8a5f3b;
+ --gold: #d8b25c;
+ --gold-deep: #8a6a16;    /* 金果说明文字(白底AA) */
+ --radius: 24px;
+
+[0m
+Thinking: Now there's a potential visual concern: My leafG0/1/2 gradients with center 42/38% and r 75% fade to 0 — for a young sapling (hr~0), crownR=14; halo circle radius 21 around (crownCy+3). blobs small s= crownR*0.36 ~5 with gradient r75% => visible soft puffs of ~5 radius with alpha .95 center quickly dropping. The crown might look very small but the original at hr=0 small tree also small crown (~28 diameter) fine.
+
+At mature g=1: crownR=48; halo 72 radius with leafG1 center at 0% alpha .95? wait leafG1 stops: 0% #e0eed8 opacity .95; 55% #bcd8ae .5; 100% transparent. Halo alpha whole circle *0.5 via opacity attr => low soft mint wash radius 72 — lovely.
+
+blobs radius s up to crownR*(0.36+4*0.12)=48*.84=40 big blobs (i%5). color leafG2 darker green feather. Fine.
+
+Now think about performance with large blurred radius via radial gradients each frame during sway (transform invalidates? SVG static content, transform via CSS on <svg> element; gradient fills don't get re-rasterized unless SVG filter present; no filter on group except soil shadow ellipse uses url(#soft) blur filter within treeRoot. During sway of svg, element filter on ellipse might re-render each frame — single blur ellipse small, ok.
+
+Now bigger worry: CSS drop-shadow filter on .tree-svg already rasterizes whole tree each sway frame + watered filter both filter values. OK temporary.
+
+Let me now visually test using chromium headless screenshot to check no crash & layout. Use chromium headless to open file & capture console. Need to serve via http since localStorage works on file too? Let's run http.server and curl for 200, and try chromium headless screenshot to inspect (optional). Chromium sandbox may need --no-sandbox in container.
+
+Let's start a server on port 8123 background, curl index/icon/manifest, node check done. Then attempt headless screenshot w/ console logs for both day? time-based theme maybe night at current UTC? use --virtual-time-budget. We'll just screenshot.
+
+Let me do http checks.
+Now run static verification + a live check with http.server and a headless Chromium screenshot to make sure nothing breaks visually.
+[0m$ [0mcd /tmp/oc-tree && (python3 -m http.server 8123 >/tmp/oc_server.log 2>&1 &) ; sleep 1 && for p in "" "style.css" "app.js" "manifest.webmanifest" "icons/icon-192.png" "icons/icon-512.png"; do printf "%-24s %s\n" "/$p" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8123/$p)"; done
+/                        200
+/style.css               200
+/app.js                  200
+/manifest.webmanifest    200
+/icons/icon-192.png      200
+/icons/icon-512.png      200
+[0m
+[0m$ [0mcd /tmp/oc-tree && ls /snap/bin/chromium >/dev/null 2>&1 && CHROME=/snap/bin/chromium; timeout 60 "$CHROME" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,760 --screenshot=/tmp/oc_shot_day.png --virtual-time-budget=4000 "http://127.0.0.1:8123/" 2>/tmp/oc_chrome.log; echo "exit=$?"; ls -la /tmp/oc_shot_day.png 2>/dev/null; tail -5 /tmp/oc_chrome.log
+exit=0
+ERROR: ld.so: object '/$LIB/libonion.so' from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.
+ERROR: ld.so: object '/$LIB/libonion.so' from /etc/ld.so.preload cannot be preloaded (cannot open shared object file): ignored.
+[263641:263641:0903/205907.562652:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.ListActivatableNames: object_path= /org/freedesktop/DBus: org.freedesktop.DBus.Error.AccessDenied: An AppArmor policy prevents this sender from sending this message to this recipient; type="method_call", sender=":1.324" (uid=1000 pid=263641 comm="/snap/chromium/3507/usr/lib/chromium-browser/chrom" label="snap.chromium.chromium (enforce)") interface="org.freedesktop.DBus" member="ListActivatableNames" error name="(unset)" requested_reply="0" destination="org.freedesktop.DBus" (bus)
+[263641:263641:0903/205907.609647:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.ListActivatableNames: object_path= /org/freedesktop/DBus: org.freedesktop.DBus.Error.AccessDenied: An AppArmor policy prevents this sender from sending this message to this recipient; type="method_call", sender=":1.324" (uid=1000 pid=263641 comm="/snap/chromium/3507/usr/lib/chromium-browser/chrom" label="snap.chromium.chromium (enforce)") interface="org.freedesktop.DBus" member="ListActivatableNames" error name="(unset)" requested_reply="0" destination="org.freedesktop.DBus" (bus)
+98418 bytes written to file /tmp/oc_shot_day.png
+[0m
+Thinking: Screenshot written. Let me view it via read image.
+[0m$ [0mcd /tmp/oc-tree && CHROME=/snap/bin/chromium; TZ=Asia/Shanghai timeout 60 "$CHROME" --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,760 --screenshot=/tmp/oc_shot_s.png --virtual-time-budget=4000 "http://127.0.0.1:8123/" >/dev/null 2>&1; echo done
+done
+[0m
+[0m$ [0mcd /tmp/oc-tree && TZ=Asia/Shanghai node -e 'console.log(new Date().toString(), new Date().getHours())' ; TZ=Asia/Shanghai /snap/bin/chromium --headless=new --no-sandbox --disable-gpu --hide-scrollbars --window-size=390,760 --screenshot=/tmp/oc_shot_sh.png --virtual-time-budget=3000 "http://127.0.0.1:8123/" >/dev/null 2>&1; echo ok
+Thu Sep 03 2026 20:59:19 GMT+0800 (China Standard Time) 20
+ok
+[0m
+Thinking: Current time in Asia/Shanghai is 20:59 → theme-night. The screenshot oc_shot_sh is night view. Good to check night contrast. Let me view both day and night screenshots.
+
+Let me view via read tool with image? read tool supports images. Path /tmp/oc_shot_day.png etc.
+[93m[1m! [0mpermission requested: external_directory (/tmp/*); auto-rejecting
+[0m✗ [0mRead /tmp/oc_shot_day.png failed
+[91m[1mError: [0mThe user rejected permission to use this specific tool call.

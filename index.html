@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>愈合之树</title>
 <meta name="description" content="一棵只陪你不催促的树。它按真实时间慢慢生长，陪你把身体与自己慢慢修复。" />
 <meta name="theme-color" content="#eaf3ec" />
@@ -31,23 +31,78 @@
   <!-- 顶部：问候 + 结疤旁的花 -->
   <header class="top">
     <div class="greeting" id="greeting">你来了。</div>
-    <div class="subline" id="timeOfDay"></div>
+    <div class="subline" id="timeOfDay" aria-live="polite"></div>
   </header>
 
   <!-- 画面主体：树生长区 -->
-  <section class="scene">
+  <section class="scene" aria-label="树的生长场景">
     <!-- 用内联 SVG 承载参数化生长的树 -->
-    <svg id="treeSvg" class="tree-svg" viewBox="0 0 320 440" preserveAspectRatio="xMidYMax meet">
+    <svg id="treeSvg" class="tree-svg" viewBox="0 0 320 440" preserveAspectRatio="xMidYMax meet"
+         role="img" aria-label="一棵正在土里歇着的种子">
       <defs>
-        <radialGradient id="trunkGrad" cx="50%" cy="50%" r="65%">
-          <stop offset="0%" stop-color="#a97c50"/>
-          <stop offset="100%" stop-color="#8a5f3b"/>
+        <!-- 土壤：顶部受光、边缘更深的柔和渐变 -->
+        <radialGradient id="soilgrad" cx="50%" cy="38%" r="65%">
+          <stop offset="0%" stop-color="#9c7a55"/>
+          <stop offset="72%" stop-color="#7c5b38"/>
+          <stop offset="100%" stop-color="#6a4a2c"/>
+        </radialGradient>
+        <radialGradient id="soilTop" cx="50%" cy="42%" r="55%">
+          <stop offset="0%" stop-color="#b08a5e" stop-opacity=".9"/>
+          <stop offset="100%" stop-color="#b08a5e" stop-opacity="0"/>
+        </radialGradient>
+        <!-- 叶团：中心浓郁、边缘渐隐的水彩“羽化”渐变 -->
+        <radialGradient id="leafG0" cx="42%" cy="38%" r="75%">
+          <stop offset="0%" stop-color="#cfe5c4" stop-opacity=".95"/>
+          <stop offset="55%" stop-color="#a6c9a0" stop-opacity=".55"/>
+          <stop offset="100%" stop-color="#8ab08c" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="leafG1" cx="42%" cy="38%" r="75%">
+          <stop offset="0%" stop-color="#e0eed8" stop-opacity=".95"/>
+          <stop offset="55%" stop-color="#bcd8ae" stop-opacity=".5"/>
+          <stop offset="100%" stop-color="#9fbd96" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="leafG2" cx="42%" cy="38%" r="75%">
+          <stop offset="0%" stop-color="#b6d3ab" stop-opacity=".95"/>
+          <stop offset="55%" stop-color="#8fb092" stop-opacity=".55"/>
+          <stop offset="100%" stop-color="#76977e" stop-opacity="0"/>
+        </radialGradient>
+        <!-- 小花：五片花瓣与水彩花心 -->
+        <radialGradient id="petalA" cx="42%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="#fae6de" stop-opacity=".95"/>
+          <stop offset="60%" stop-color="#f3d3c6" stop-opacity=".6"/>
+          <stop offset="100%" stop-color="#ecc0b3" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="petalB" cx="42%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="#f8e0d8" stop-opacity=".9"/>
+          <stop offset="60%" stop-color="#efc6bb" stop-opacity=".55"/>
+          <stop offset="100%" stop-color="#e8b7aa" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="heartG" cx="45%" cy="38%" r="65%">
+          <stop offset="0%" stop-color="#f9d9a8"/>
+          <stop offset="55%" stop-color="#f3b987"/>
+          <stop offset="100%" stop-color="#eba06f"/>
+        </radialGradient>
+        <!-- 金果：柔柔的光晕 -->
+        <radialGradient id="goldHalo" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#f9eec6" stop-opacity=".8"/>
+          <stop offset="55%" stop-color="#eedc9f" stop-opacity=".28"/>
+          <stop offset="100%" stop-color="#eedc9f" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="goldFruit" cx="40%" cy="32%" r="70%">
+          <stop offset="0%" stop-color="#f4dd90"/>
+          <stop offset="55%" stop-color="#e0bd56"/>
+          <stop offset="100%" stop-color="#cfaa48"/>
+        </radialGradient>
+        <!-- 疤：被新皮温柔包裹的柔边 -->
+        <radialGradient id="scarRing" cx="50%" cy="45%" r="55%">
+          <stop offset="0%" stop-color="#9a6b45" stop-opacity=".9"/>
+          <stop offset="100%" stop-color="#9a6b45" stop-opacity="0"/>
         </radialGradient>
         <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
           <feGaussianBlur stdDeviation="1.1"/>
         </filter>
       </defs>
-      <!-- soil 由 JS 注入；树各组由 JS 参数化生成 -->
+      <!-- soil 与树各组由 JS 参数化生成 -->
       <g id="treeRoot"></g>
     </svg>
   </section>
@@ -55,7 +110,7 @@
   <!-- 地下水壶按钮 -->
   <button class="water-btn" id="waterBtn" aria-label="给树浇水">
     <span class="btn-inner">
-      <span class="pour" id="pour"></span>
+      <span class="pour" id="pour" aria-hidden="true"></span>
       浇水
     </span>
     <small class="water-state" id="waterState"></small>
@@ -63,17 +118,17 @@
 
   <!-- 底部控制排 -->
   <footer class="dock">
-    <button class="dock-btn" id="breathBtn" aria-label="呼吸引导">🌬️ 呼吸</button>
-    <button class="dock-btn" id="feelBtn" aria-label="记录今天感受">🍃 感受</button>
-    <button class="dock-btn" id="muteBtn" aria-label="声音开关">🔊</button>
+    <button class="dock-btn" id="breathBtn" aria-label="呼吸引导"><span class="dock-ico" aria-hidden="true">🌬️</span>呼吸</button>
+    <button class="dock-btn" id="feelBtn" aria-label="记录今天感受"><span class="dock-ico" aria-hidden="true">🍃</span>感受</button>
+    <button class="dock-btn" id="muteBtn" aria-label="声音开关"><span class="dock-ico" aria-hidden="true">🔊</span></button>
   </footer>
 
-  <!-- 静音常驻角标 -->
-  <div class="quiet-note" id="quietNote" hidden></div>
+  <!-- 常驻低语行 -->
+  <p class="quiet-note" id="quietNote" aria-live="polite" hidden></p>
 </main>
 
 <!-- ===== 呼吸引导浮层 ===== -->
-<div class="overlay" id="breathOverlay" hidden>
+<div class="overlay" id="breathOverlay" role="dialog" aria-modal="true" aria-label="呼吸引导" hidden>
   <div class="breath-card">
     <div class="breath-ring" id="breathRing"><span id="breathWord">吸气</span></div>
     <p class="breath-tip" id="breathTip"></p>
@@ -82,9 +137,9 @@
 </div>
 
 <!-- ===== 感受记录浮层 ===== -->
-<div class="overlay" id="feelOverlay" hidden>
+<div class="overlay" id="feelOverlay" role="dialog" aria-modal="true" aria-labelledby="feelTitle" hidden>
   <div class="feel-card">
-    <h3>今天的感觉</h3>
+    <h3 id="feelTitle">今天的感觉</h3>
     <p class="feel-sub">选一个，或都不选。只是看看也够好。</p>
     <div class="moods" id="moodRow">
       <button class="mood" data-f="0" data-color="#c7dfc9" style="--c:#c7dfc9">平静</button>
@@ -93,7 +148,7 @@
       <button class="mood" data-f="3" data-color="#e7cccc" style="--c:#e7cccc">难受</button>
     </div>
     <div class="feel-better" id="betterWrap" hidden>
-      <button class="ghost-btn gold" id="betterBtn">比昨天好一点 ✦</button>
+      <button class="ghost-btn gold" id="betterBtn"><span aria-hidden="true">✦</span> 比昨天好一点</button>
     </div>
     <div class="gold-note" id="goldNote"></div>
     <button class="ghost-btn" id="feelClose">记好了</button>
