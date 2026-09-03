@@ -1,18 +1,30 @@
-// 愈合之树 Service Worker — 离线缓存核心资源
-const CACHE = 'healing-tree-v1';
-const ASSETS = [
+// 愈合之树 Service Worker — 离线缓存（v2 模块化）
+const CACHE = 'healing-tree-v2';
+const PRECACHE = [
   './',
   './index.html',
   './style.css',
-  './app.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './js/app.js',
+  './js/config.js',
+  './js/state.js',
+  './js/ui.js',
+  './js/theme.js',
+  './js/growth.js',
+  './js/tree-render.js',
+  './js/audio.js',
+  './js/particles.js',
+  './js/water.js',
+  './js/breath.js',
+  './js/feel.js',
+  './js/whisper.js',
 ];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting())
   );
 });
 
@@ -30,7 +42,6 @@ self.addEventListener('fetch', (e) => {
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(resp => {
-        // 只缓存同源成功响应
         if (resp.ok && e.request.url.startsWith(self.location.origin)) {
           const clone = resp.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
