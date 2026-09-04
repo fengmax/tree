@@ -1,5 +1,5 @@
-// 愈合之树 Service Worker — 离线缓存（v2 模块化）
-const CACHE = 'healing-tree-v20';
+// 愈合之树 Service Worker — 离线缓存（v3 容错版）
+const CACHE = 'healing-tree-v21';
 const PRECACHE = [
   './',
   './index.html',
@@ -30,9 +30,19 @@ const PRECACHE = [
   './js/replies.js',
 ];
 
+/* 逐个容错预缓存：github.io 单文件可能挂起，addAll 会因一个文件失败
+ * 而整个安装失败 → 新 SW 永远装不上，页面一直被旧 SW 卡着。
+ * 改为带超时逐个下载，单文件失败跳过：只要 sw.js 本身到了就一定能装上，
+ * 缺的文件之后由 fetch 超时兜底从网络/缓存补齐。 */
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(cache =>
+      Promise.allSettled(PRECACHE.map(url =>
+        fetchWithTimeout(url, 4000)
+          .then(resp => { if (resp && resp.ok) return cache.put(url, resp); })
+          .catch(() => {})
+      ))
+    ).then(() => self.skipWaiting())
   );
 });
 
