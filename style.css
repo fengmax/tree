@@ -624,20 +624,43 @@ body.season-winter .tree-svg .ground-life { filter: saturate(.65); }
 }
 
 /* ---------- 微型日记本 ---------- */
+/* 季节主题色：卡片底色/分隔线随季节微染，低饱和、不伤眼（文字仍用深墨绿） */
+body.season-spring {
+  --season-bg-a: rgba(253,254,248,.98); --season-bg-b: rgba(241,248,235,.97);
+  --season-border: rgba(205,223,192,.62); --season-month: rgba(247,251,242,.92);
+  --season-line: rgba(126,152,122,.15); --season-rule: rgba(148,180,154,.32);
+}
+body.season-summer {
+  --season-bg-a: rgba(249,253,251,.98); --season-bg-b: rgba(233,245,239,.97);
+  --season-border: rgba(186,215,200,.62); --season-month: rgba(241,249,244,.92);
+  --season-line: rgba(96,142,116,.14); --season-rule: rgba(150,190,168,.3);
+}
+body.season-autumn {
+  --season-bg-a: rgba(255,251,243,.98); --season-bg-b: rgba(250,240,224,.97);
+  --season-border: rgba(229,207,165,.64); --season-month: rgba(252,244,230,.92);
+  --season-line: rgba(158,128,88,.14); --season-rule: rgba(205,172,122,.3);
+}
+body.season-winter {
+  --season-bg-a: rgba(252,253,255,.98); --season-bg-b: rgba(239,243,250,.97);
+  --season-border: rgba(203,214,231,.64); --season-month: rgba(244,247,252,.92);
+  --season-line: rgba(118,134,158,.14); --season-rule: rgba(170,185,205,.3);
+}
 .diary-card {
   display: flex; flex-direction: column;
   width: min(460px, 92vw);
   max-height: calc(100dvh - 36px);
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(255,255,255,.97), rgba(248,251,248,.95));
-  border: 1px solid rgba(255,255,255,.7);
+  background: linear-gradient(180deg,
+    var(--season-bg-a, rgba(255,255,255,.97)),
+    var(--season-bg-b, rgba(248,251,248,.95)));
+  border: 1px solid var(--season-border, rgba(255,255,255,.7));
   border-radius: var(--radius);
   padding: 22px 22px 14px;
   text-align: left;
   box-shadow: 0 22px 60px rgba(46, 60, 56, .24);
   transform: translateY(14px) scale(.985);
   opacity: 0;
-  transition: transform .5s var(--ease-out), opacity .45s var(--ease-out);
+  transition: transform .5s var(--ease-out), opacity .45s var(--ease-out), background 1.2s ease, border-color 1.2s ease;
 }
 .overlay.show .diary-card { transform: translateY(0) scale(1); opacity: 1; }
 .diary-card h3 { flex: none; margin: 0 0 6px; font-weight: 600; letter-spacing: 3px; color: var(--ink); text-align: center; }
@@ -651,22 +674,39 @@ body.season-winter .tree-svg .ground-life { filter: saturate(.65); }
 }
 .diary-month {
   position: sticky; top: 0; z-index: 1;
-  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.92));
+  background: linear-gradient(180deg,
+    var(--season-month, rgba(255,255,255,.98)),
+    var(--season-month, rgba(255,255,255,.92)));
   margin: 10px 0 3px; padding: 6px 2px 5px;
   font-size: .72rem; letter-spacing: 2px;
   color: var(--ink-soft); opacity: .9;
-  border-bottom: 1px dashed rgba(148,180,154,.35);
+  border-bottom: 1px dashed var(--season-rule, rgba(148,180,154,.35));
 }
 .diary-month:first-child { margin-top: 0; }
-.diary-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 2px; border-bottom: 1px solid rgba(190,212,194,.22); }
+.diary-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--season-line, rgba(190,212,194,.22)); }
 .diary-dot {
   width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; flex: none;
   background: var(--c, #d8e4d9);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.55);
 }
 .diary-body { flex: 1; min-width: 0; }
-.diary-date { margin: 0 0 3px; font-size: .72rem; color: var(--ink-soft); opacity: .9; }
-.diary-text { margin: 0 0 3px; font-size: .86rem; line-height: 1.65; color: var(--ink); word-break: break-word; white-space: pre-wrap; }
+.diary-date { display: flex; align-items: center; gap: 8px; margin: 0 0 3px; font-size: .72rem; color: var(--ink-soft); opacity: .9; }
+.diary-date .dd-txt { flex: 1; min-width: 0; }
+.diary-fold {
+  flex: none; border: 0; background: none; cursor: pointer;
+  font-family: inherit; font-size: .7rem; line-height: 1;
+  color: var(--ink-soft); opacity: .58; padding: 2px 3px 2px 8px;
+  border-radius: 7px; transition: opacity .15s, color .15s, background .15s;
+}
+.diary-fold:hover, .diary-fold:focus-visible { opacity: 1; color: var(--ink); background: rgba(90,107,98,.07); }
+.diary-fold[hidden] { display: none; }
+.diary-text {
+  margin: 0 0 3px; font-size: .86rem; line-height: 1.65; color: var(--ink);
+  word-break: break-word; white-space: pre-wrap;
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3; overflow: hidden;
+}
+.diary-item.open .diary-text { -webkit-line-clamp: unset; overflow: visible; }
 .diary-reply { margin: 0; font-size: .76rem; line-height: 1.6; color: var(--ink-soft); opacity: .85; }
 .diary-del {
   flex: none; border: 1px solid transparent; background: none;
@@ -685,7 +725,7 @@ body.season-winter .tree-svg .ground-life { filter: saturate(.65); }
 }
 .diary-more {
   display: block; width: 100%; margin: 14px 0 2px;
-  padding: 10px; border: 1px dashed rgba(148,180,154,.5);
+  padding: 10px; border: 1px dashed var(--season-rule, rgba(148,180,154,.5));
   border-radius: 12px; background: none; color: var(--ink-soft);
   font: inherit; font-size: .8rem; cursor: pointer;
   transition: border-color .15s, background .15s, color .15s;
@@ -695,7 +735,7 @@ body.season-winter .tree-svg .ground-life { filter: saturate(.65); }
 .diary-foot {
   flex: none;
   margin-top: 10px; padding-top: 12px;
-  border-top: 1px solid rgba(190,212,194,.28);
+  border-top: 1px solid var(--season-line, rgba(190,212,194,.28));
 }
 
 /* 写话面板 → 日记入口 */

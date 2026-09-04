@@ -102,11 +102,33 @@ function itemHtml(e, mood) {
   return `<div class="diary-item">
       <span class="diary-dot" style="--c:${mood ? escapeHtml(mood.color) : NO_COLOR}"></span>
       <div class="diary-body">
-        <p class="diary-date">${fmtDate(e.at)}${mood ? ' · ' + escapeHtml(mood.label) : ''}</p>
+        <div class="diary-date">
+          <span class="dd-txt">${fmtDate(e.at)}${mood ? ' · ' + escapeHtml(mood.label) : ''}</span>
+          <button type="button" class="diary-fold" data-id="${escapeHtml(e.id)}" aria-expanded="false" hidden>展开</button>
+        </div>
         <p class="diary-text">${escapeHtml(e.text)}</p>
       </div>
       <button class="diary-del" data-id="${escapeHtml(e.id)}" aria-label="删掉这一篇" title="删掉这一篇">×</button>
     </div>`;
+}
+
+/* 正文实际超过 3 行的条目才亮出「展开」钮。
+ * 注意：-webkit-line-clamp 会让 scrollHeight 只返回裁剪高度，
+ * 需同帧临时解除裁剪量全文高（同步读写，无中间绘制，不会闪） */
+function markCollapsible(list) {
+  const items = list.querySelectorAll ? list.querySelectorAll('.diary-item') : [];
+  for (const item of items) {
+    const txt = item.querySelector('.diary-text');
+    const fold = item.querySelector('.diary-fold');
+    if (!txt || !fold) continue;
+    txt.style.webkitLineClamp = 'unset';
+    const fullH = txt.scrollHeight;
+    txt.style.webkitLineClamp = '';
+    const lineH = parseFloat(getComputedStyle(txt).lineHeight) || 17;
+    const over = fullH > lineH * 3 + 1;
+    fold.hidden = !over;
+    item.classList.toggle('collapsible', over);
+  }
 }
 
 /* reset=true 或省略：回到最新一页；false：在当前位置继续展开更早 */
@@ -149,20 +171,35 @@ export function renderDiary(reset) {
   const rest = desc.length - shown.length;
   if (rest > 0) html += `<button class="diary-more" data-action="more">更早的还有 ${rest} 篇 · 再看看</button>`;
   list.innerHTML = html;
+  // 浮层可见时才量行数（display:none 下量不准，打开后由 openDiary 的 rAF 补测）
+  if (list.offsetParent !== null) markCollapsible(list);
 }
 
 export function openDiary() {
+  const ov = $('diaryOverlay');
+  const list = $('diaryList');
   renderDiary();
-  showOverlay($('diaryOverlay'));
+  showOverlay(ov);        // 同步解除 display:none
+  // 浮层可见后才能量出真实行数（renderDiary 在 hidden 态跳过了测量）
+  if (list) markCollapsible(list);
 }
 
 export function closeDiary() {
   hideOverlay($('diaryOverlay'));
 }
 
-/* 列表内点击：加载更早 / 删除（两次点击确认） */
+/* 列表内点击：展开/收起正文 · 加载更早 · 删除（两次点击确认） */
 export function handleDiaryClick(e) {
   const t = e.target;
+  const fold = t.closest && t.closest('.diary-fold');
+  if (fold) {
+    const item = fold.closest('.diary-item');
+    if (!item) return;
+    const open = item.classList.toggle('open');
+    fold.setAttribute('aria-expanded', String(open));
+    fold.textContent = open ? '收起' : '展开';
+    return;
+  }
   if (t.closest && t.closest('[data-action="more"]')) {
     _limit += PAGE;
     renderDiary(false);
