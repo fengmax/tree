@@ -21,6 +21,8 @@ export function defaultState() {
     muted: true,
     volume: 0.5,
     soundType: 'auto',
+      entries: [],
+      /* 以下为单条便签的旧字段：仅供迁移读取，日记化后不再写入 */
       noteText: '',
       noteAt: 0,
       noteReply: '',
@@ -35,12 +37,29 @@ export function defaultState() {
   };
 }
 
+/* 微型日记本迁移：老版单条 noteText → entries[0]，不丢老数据 */
+function migrate(s) {
+  if (!Array.isArray(s.entries)) s.entries = [];
+  if (s.entries.length === 0 && typeof s.noteText === 'string' && s.noteText.trim()) {
+    s.entries.push({
+      id: 'e' + (s.noteAt || Date.now()).toString(36),
+      text: s.noteText.slice(0, 42),
+      at: s.noteAt || Date.now(),
+      reply: s.noteReply || s.aiReply || '',
+    });
+    s.noteText = '';
+    s.noteReply = '';
+    s.aiReply = '';
+  }
+  return s;
+}
+
 export function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultState();
     const p = JSON.parse(raw);
-    return Object.assign(defaultState(), p);
+    return migrate(Object.assign(defaultState(), p));
   } catch (e) {
     return defaultState();
   }

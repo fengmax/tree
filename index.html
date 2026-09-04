@@ -127,6 +127,7 @@
     <button class="dock-btn" id="breathBtn" aria-label="呼吸引导"><span class="dock-ico" aria-hidden="true">🌬️</span>呼吸</button>
     <button class="dock-btn" id="feelBtn" aria-label="记录今天感受"><span class="dock-ico" aria-hidden="true">🍃</span>感受</button>
     <button class="dock-btn" id="noteBtn" aria-label="写给自己一句话"><span class="dock-ico" aria-hidden="true">✎</span>写话</button>
+    <button class="dock-btn" id="diaryBtn" aria-label="翻开以前的日记"><span class="dock-ico" aria-hidden="true">📖</span>日记</button>
     <button class="dock-btn" id="muteBtn" aria-label="声音开关"><span class="dock-ico" aria-hidden="true">🔊</span></button>
   </footer>
 
@@ -162,8 +163,24 @@
           <button class="ghost-btn gold" id="noteClose">让树回应</button>
         </div>
         <button class="ghost-btn ai-reply-btn" id="aiReply">和树聊聊</button>
+        <button class="text-btn" id="noteHistory">翻开以前的日记</button>
       </div>
     </div>
+
+  <!-- ===== 日记本 ===== -->
+  <div class="overlay" id="diaryOverlay" role="dialog" aria-modal="true" aria-labelledby="diaryTitle" hidden>
+    <div class="diary-card">
+      <h3 id="diaryTitle">日记本</h3>
+      <p class="feel-sub diary-meta" id="diaryMeta"></p>
+      <div class="diary-list" id="diaryList" aria-live="polite"></div>
+      <p class="diary-empty" id="diaryEmpty" hidden>还没有写过。想写的时候，树一直在。</p>
+      <div class="note-actions diary-foot">
+        <button class="ghost-btn" id="diaryExportMd">导出 md</button>
+        <button class="ghost-btn" id="diaryExportJson">备份 json</button>
+        <button class="ghost-btn gold" id="diaryClose">收好</button>
+      </div>
+    </div>
+  </div>
 
   <div class="overlay" id="aiConfigOverlay" role="dialog" aria-modal="true" aria-labelledby="aiConfigTitle" hidden>
     <div class="note-card ai-config-card">
