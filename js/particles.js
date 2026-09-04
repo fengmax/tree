@@ -48,10 +48,17 @@ function ambientColor(kind) {
 }
 
 let ambient = [];
+
+/* 生成位置偏向屏幕中央（树的位置）：树只占中央一小条，
+ * 全屏均匀撒会显得「树周边没有落叶」 */
+function centerX(w) {
+  return w / 2 + (Math.random() * 2 - 1) * w * .36;
+}
+
 function spawnAmbient(kind, h, fillTop) {
   const base = {
     kind,
-    x: Math.random() * Pctx.canvas.width,
+    x: centerX(Pctx.canvas.width),
     y: fillTop ? Math.random() * h * .86 : -22 - Math.random() * 60,
     vy: 0, amp: 0, phase: Math.random() * Math.PI * 2,
     w: 0, size: 0, rot: Math.random() * Math.PI * 2,
