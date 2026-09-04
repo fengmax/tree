@@ -120,6 +120,6 @@ export async function askAiReply() {
   } catch (error) {
     toast('现在还联系不上 AI，树先陪你安静一会儿。');
   } finally {
-    if (button) { button.disabled = false; button.textContent = '请 AI 回应'; }
+    if (button) { button.disabled = false; button.textContent = '和树聊聊'; }
   }
 }

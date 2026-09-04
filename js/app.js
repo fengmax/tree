@@ -91,8 +91,7 @@ function bindEvents() {
   // 感受
   $('feelBtn').addEventListener('click', openFeel);
   $('noteBtn').addEventListener('click', openNote);
-  $('noteClose').addEventListener('click', () => { hideOverlay($('noteOverlay')); });
-  $('noteSave').addEventListener('click', saveNote);
+  $('noteClose').addEventListener('click', saveNote);
   $('aiReply').addEventListener('click', askAiReply);
   $('aiConfigClose').addEventListener('click', () => { hideOverlay($('aiConfigOverlay')); });
   $('aiConfigSave').addEventListener('click', saveAiConfig);
