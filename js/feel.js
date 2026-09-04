@@ -6,6 +6,7 @@ import { BETTER_NEED } from './config.js';
 import { getState, setState, save } from './state.js';
 import { $, toast, showOverlay, hideOverlay } from './ui.js';
 import { trackGoldFlag, goldFruitIntended, betterCount } from './tree-render.js';
+import { rewardDailyCare } from './growth.js';
 
 // refreshAll 回调，由 app.js 注入
 let _refreshAll = null;
@@ -60,6 +61,8 @@ export function recordFeel(color, label) {
   }
   state.feels.push({ t: Date.now(), color, label });
   save();
+  rewardDailyCare('feel');
+  renderFeelHistory();
   if (_refreshAll) _refreshAll();
   toast('记下了，树梢轻轻摇了摇。');
   return true;

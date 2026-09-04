@@ -6,6 +6,7 @@ export const DAY = 86400000;
 export const KEY = 'healingTree.state.v1';
 export const BASE_PER_DAY = 0.020;
 export const WATER_MULT = 3.0;
+export const CARE_GROWTH = BASE_PER_DAY * WATER_MULT;
 export const MAX_FILL = 3;
 export const FILL_WINDOW = DAY;
 export const WATER_CD = 4 * 3600 * 1000;

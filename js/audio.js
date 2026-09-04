@@ -10,6 +10,14 @@ let audioCtx = null;
 let activeNodes = [];
 let soundOn = false;
 let masterGain = null;
+let ambientAudio = null;
+
+const AMBIENT_FILES = {
+  rain: './sounds/rain.mp3',
+  forest: './sounds/forest.mp3',
+  stream: './sounds/stream.mp3',
+  night: './sounds/night.mp3',
+};
 
 export function getVolume() { const s = getState(); return s.volume != null ? s.volume : 0.5; }
 
@@ -136,8 +144,10 @@ function makeCrickets(ctx, gainNode) {
 
 function resolveSoundType() {
   const state = getState();
-  if (state.soundType && state.soundType !== 'auto') return state.soundType;
-  return isNight() ? 'crickets' : 'birds';
+  if (!state.soundType || state.soundType === 'auto') return isNight() ? 'night' : 'forest';
+  if (state.soundType === 'birds' || state.soundType === 'wind') return 'forest';
+  if (state.soundType === 'crickets') return 'night';
+  return state.soundType;
 }
 
 export function startAmbient() {
@@ -145,19 +155,25 @@ export function startAmbient() {
   stopAmbient();
   try {
     const type = resolveSoundType();
-    const nodes = [];
-    // 风声不再作为所有模式的底噪，只在明确选择「风声」时播放
-    if (type === 'wind') nodes.push(makeWind(audioCtx, masterGain));
-    else if (type === 'rain') nodes.push(makeRain(audioCtx, masterGain));
-    else if (type === 'stream') nodes.push(makeStream(audioCtx, masterGain));
-    else if (type === 'birds') nodes.push(makeBirds(audioCtx, masterGain));
-    else if (type === 'crickets') nodes.push(makeCrickets(audioCtx, masterGain));
-    activeNodes = nodes;
+    const src = AMBIENT_FILES[type];
+    if (!src) return;
+    ambientAudio = new Audio(src);
+    ambientAudio.loop = true;
+    ambientAudio.preload = 'auto';
+    ambientAudio.volume = getVolume();
+    ambientAudio.play().catch(() => {
+      stopAmbient();
+    });
     soundOn = true;
   } catch (e) { soundOn = false; }
 }
 
 export function stopAmbient() {
+  if (ambientAudio) {
+    ambientAudio.pause();
+    ambientAudio.currentTime = 0;
+    ambientAudio = null;
+  }
   activeNodes.forEach(n => {
     try {
       if (n.src && n.src.stop) n.src.stop();
@@ -200,6 +216,7 @@ export function setVolume(v) {
   if (masterGain && audioCtx) {
     masterGain.gain.setTargetAtTime(v, audioCtx.currentTime, 0.1);
   }
+  if (ambientAudio) ambientAudio.volume = v;
   if (v === 0 && !getState().muted) setMuted(true);
   else if (v > 0 && getState().muted) setMuted(false);
 }
@@ -228,6 +245,8 @@ export function updateSoundPanel() {
   });
   const vol = $('volSlider');
   if (vol) vol.value = state.muted ? 0 : getVolume();
+  const mute = $('soundMute');
+  if (mute) mute.textContent = state.muted ? '播放声音' : '暂时静音';
 }
 
 export function playWaterSound() {

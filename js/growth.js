@@ -2,7 +2,7 @@
  * 愈合之树 — 成长引擎
  * 依赖: config.js, state.js
  * ============================================================ */
-import { DAY, BASE_PER_DAY, WATER_MULT, MAX_LOOKBACK, STAGES } from './config.js';
+import { DAY, BASE_PER_DAY, WATER_MULT, CARE_GROWTH, MAX_LOOKBACK, STAGES } from './config.js';
 import { getState, setState, save } from './state.js';
 
 export function settleGrowth() {
@@ -45,4 +45,15 @@ export function companionDays() {
   start.setHours(0, 0, 0, 0);
   now.setHours(0, 0, 0, 0);
   return Math.max(0, Math.floor((now - start) / DAY));
+}
+
+export function rewardDailyCare(kind) {
+  const state = getState();
+  const field = kind === 'feel' ? 'feelGrowthDate' : 'noteGrowthDate';
+  const today = new Date().toDateString();
+  if (state[field] === today) return false;
+  state.growth = Math.min(1, state.growth + CARE_GROWTH);
+  state[field] = today;
+  save();
+  return true;
 }

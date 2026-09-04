@@ -1,5 +1,5 @@
 // 愈合之树 Service Worker — 离线缓存（v2 模块化）
-const CACHE = 'healing-tree-v2';
+const CACHE = 'healing-tree-v15';
 const PRECACHE = [
   './',
   './index.html',
@@ -7,6 +7,10 @@ const PRECACHE = [
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './sounds/rain.mp3',
+  './sounds/forest.mp3',
+  './sounds/stream.mp3',
+  './sounds/night.mp3',
   './js/app.js',
   './js/config.js',
   './js/state.js',
@@ -20,6 +24,7 @@ const PRECACHE = [
   './js/breath.js',
   './js/feel.js',
   './js/whisper.js',
+  './js/note.js',
 ];
 
 self.addEventListener('install', (e) => {

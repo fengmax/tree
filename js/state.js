@@ -18,9 +18,19 @@ export function defaultState() {
     goldFruits: 0,
     feels: [],
     companions: 0,
-    muted: false,
+    muted: true,
     volume: 0.5,
     soundType: 'auto',
+      noteText: '',
+      noteAt: 0,
+      noteReply: '',
+      aiReply: '',
+      aiApiKey: '',
+      aiBaseUrl: 'https://api.openai.com/v1',
+      aiModel: 'gpt-4o-mini',
+      dailyPromptDate: '',
+      feelGrowthDate: '',
+      noteGrowthDate: '',
   };
 }
 

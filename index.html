@@ -35,6 +35,11 @@
     <div class="stage-info" id="stageInfo" aria-live="polite"></div>
   </header>
 
+  <aside class="daily-prompt" id="dailyPrompt" aria-live="polite" hidden>
+    <span class="daily-prompt-text"></span>
+    <button class="prompt-dismiss" id="promptDismiss" type="button" aria-label="收起今日提示">收起</button>
+  </aside>
+
   <!-- 画面主体：树生长区 -->
   <section class="scene" aria-label="树的生长场景">
     <!-- 用内联 SVG 承载参数化生长的树 -->
@@ -121,6 +126,7 @@
   <footer class="dock">
     <button class="dock-btn" id="breathBtn" aria-label="呼吸引导"><span class="dock-ico" aria-hidden="true">🌬️</span>呼吸</button>
     <button class="dock-btn" id="feelBtn" aria-label="记录今天感受"><span class="dock-ico" aria-hidden="true">🍃</span>感受</button>
+    <button class="dock-btn" id="noteBtn" aria-label="写给自己一句话"><span class="dock-ico" aria-hidden="true">✎</span>写话</button>
     <button class="dock-btn" id="muteBtn" aria-label="声音开关"><span class="dock-ico" aria-hidden="true">🔊</span></button>
   </footer>
 
@@ -131,22 +137,56 @@
       <p class="feel-sub">选一种陪你，或调调音量。</p>
       <div class="sound-opts" id="soundOpts">
         <button class="sound-opt" data-type="auto">🌿 自动</button>
-        <button class="sound-opt" data-type="wind">🌬️ 风声</button>
-        <button class="sound-opt" data-type="rain">🌧️ 雨声</button>
-        <button class="sound-opt" data-type="stream">💧 流水</button>
-        <button class="sound-opt" data-type="birds">🐦 鸟鸣</button>
-        <button class="sound-opt" data-type="crickets">🦗 虫鸣</button>
+        <button class="sound-opt" data-type="rain">🌧️ 雨天</button>
+        <button class="sound-opt" data-type="forest">🌲 林间</button>
+        <button class="sound-opt" data-type="stream">💧 溪边</button>
+        <button class="sound-opt" data-type="night">🌙 夜晚</button>
       </div>
       <div class="vol-row">
         <span class="vol-label">音量</span>
         <input type="range" id="volSlider" min="0" max="1" step="0.05" value="0.5" class="vol-slider" aria-label="音量">
       </div>
+      <button class="ghost-btn sound-mute" id="soundMute">播放声音</button>
       <button class="ghost-btn" id="soundClose">好了</button>
+    </div>
+  </div>
+
+    <!-- ===== 写给自己的话 ===== -->
+    <div class="overlay" id="noteOverlay" role="dialog" aria-modal="true" aria-labelledby="noteTitle" hidden>
+      <div class="note-card">
+        <h3 id="noteTitle">写给自己的话</h3>
+        <p class="feel-sub">只留在这棵树上，不需要写得很好。</p>
+        <textarea id="noteInput" maxlength="42" rows="3" placeholder="今天，我想对自己说……" aria-label="写给自己的话"></textarea>
+        <p class="ai-consent">点击 AI 回应后，这句话会发送给你配置的模型服务。GitHub Pages 需要接口允许浏览器跨域请求。</p>
+        <div class="note-actions">
+          <button class="ghost-btn" id="noteClose">先放在这里</button>
+          <button class="ghost-btn gold" id="noteSave">让它长成一片叶子</button>
+        </div>
+        <button class="ghost-btn ai-reply-btn" id="aiReply">请 AI 回应</button>
+      </div>
+    </div>
+
+  <div class="overlay" id="aiConfigOverlay" role="dialog" aria-modal="true" aria-labelledby="aiConfigTitle" hidden>
+    <div class="note-card ai-config-card">
+      <h3 id="aiConfigTitle">连接陪伴模型</h3>
+      <p class="feel-sub">配置只保存在这台设备的浏览器里。</p>
+      <label class="config-label" for="aiBaseUrl">接口地址</label>
+      <input id="aiBaseUrl" class="config-input" type="url" value="https://api.openai.com/v1" placeholder="https://api.openai.com/v1">
+      <label class="config-label" for="aiModel">模型名称</label>
+      <input id="aiModel" class="config-input" type="text" value="gpt-4o-mini" placeholder="gpt-4o-mini">
+      <label class="config-label" for="aiApiKey">API Key</label>
+      <input id="aiApiKey" class="config-input" type="password" autocomplete="off" placeholder="粘贴你的 API Key">
+      <p class="config-warning">仅建议在你信任的本机环境中保存 API Key。</p>
+      <div class="note-actions">
+        <button class="ghost-btn" id="aiConfigClose">先不用</button>
+        <button class="ghost-btn gold" id="aiConfigSave">保存并继续</button>
+      </div>
     </div>
   </div>
 
   <!-- 常驻低语行 -->
   <p class="quiet-note" id="quietNote" aria-live="polite" hidden></p>
+  <p class="tree-reply" id="treeReply" aria-live="polite" hidden></p>
 </main>
 
 <!-- ===== 呼吸引导浮层 ===== -->

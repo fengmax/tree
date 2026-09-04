@@ -13,6 +13,7 @@ import { water, waterBtnVisual } from './water.js';
 import { openBreathWithAudio, closeBreath } from './breath.js';
 import { openFeel, recordFeel, recordBetter, setRefreshAll } from './feel.js';
 import { gentleWhisper, normalizeGreeting } from './whisper.js';
+import { openNote, saveNote, askAiReply, openAiConfig, saveAiConfig, renderNoteReply, setNoteRefresh } from './note.js';
 
 /* ---------------- 刷新 UI ---------------- */
 function refreshAll() {
@@ -23,6 +24,28 @@ function refreshAll() {
   gentleWhisper();
   renderStageInfo();
   renderGoldCrownNote();
+  renderDailyPrompt();
+  renderNoteReply();
+}
+
+const DAILY_PROMPTS = [
+  '今天不需要解决所有事情。',
+  '可以先照顾好眼前这一小步。',
+  '你已经做得够多了，休息也算在其中。',
+  '有些答案，可以晚一点再来。',
+  '今天也可以只是安静地在这里。',
+];
+
+function renderDailyPrompt() {
+  const prompt = $('dailyPrompt');
+  if (!prompt) return;
+  const today = new Date().toDateString();
+  const state = getState();
+  if (state.dailyPromptDate === today) { prompt.hidden = true; return; }
+  prompt.querySelector('.daily-prompt-text').textContent = DAILY_PROMPTS[new Date().getDate() % DAILY_PROMPTS.length];
+  prompt.hidden = false;
+  state.dailyPromptDate = today;
+  save();
 }
 
 function renderStageInfo() {
@@ -67,29 +90,19 @@ function bindEvents() {
 
   // 感受
   $('feelBtn').addEventListener('click', openFeel);
+  $('noteBtn').addEventListener('click', openNote);
+  $('noteClose').addEventListener('click', () => { hideOverlay($('noteOverlay')); });
+  $('noteSave').addEventListener('click', saveNote);
+  $('aiReply').addEventListener('click', askAiReply);
+  $('aiConfigClose').addEventListener('click', () => { hideOverlay($('aiConfigOverlay')); });
+  $('aiConfigSave').addEventListener('click', saveAiConfig);
+  $('promptDismiss').addEventListener('click', () => { $('dailyPrompt').hidden = true; });
   $('feelClose').addEventListener('click', () => { hideOverlay($('feelOverlay')); });
 
-  // 声音按钮：短按切换静音，长按打开声音面板
-  let mutePressTimer = null;
-  let muteLongPressed = false;
-  $('muteBtn').addEventListener('pointerdown', () => {
-    muteLongPressed = false;
-    mutePressTimer = setTimeout(() => {
-      muteLongPressed = true;
-      ensureAudio();
-      showOverlay($('soundOverlay'));
-      updateSoundPanel();
-    }, 500);
-  });
-  $('muteBtn').addEventListener('pointerup', () => {
-    if (mutePressTimer) { clearTimeout(mutePressTimer); mutePressTimer = null; }
-    if (!muteLongPressed) {
-      ensureAudio();
-      setMuted(!getState().muted);
-    }
-  });
-  $('muteBtn').addEventListener('pointerleave', () => {
-    if (mutePressTimer) { clearTimeout(mutePressTimer); mutePressTimer = null; }
+  // 声音按钮：点击打开面板，选择场景后才主动播放
+  $('muteBtn').addEventListener('click', () => {
+    showOverlay($('soundOverlay'));
+    updateSoundPanel();
   });
 
   // 声音面板：选项
@@ -97,6 +110,7 @@ function bindEvents() {
     b.addEventListener('click', () => {
       const type = b.dataset.type;
       switchSoundType(type);
+      setMuted(false);
       updateSoundPanel();
       toast('声音已切换为 ' + b.textContent.trim());
     });
@@ -105,6 +119,10 @@ function bindEvents() {
   // 声音面板：音量
   $('volSlider').addEventListener('input', (e) => {
     setVolume(parseFloat(e.target.value));
+  });
+
+  $('soundMute').addEventListener('click', () => {
+    setMuted(!getState().muted);
   });
 
   // 声音面板关闭
@@ -126,7 +144,7 @@ function bindEvents() {
   $('betterBtn').addEventListener('click', recordBetter);
 
   // 遮罩点空白关闭
-  [$('breathOverlay'), $('feelOverlay'), $('soundOverlay')].forEach(ov => {
+  [$('breathOverlay'), $('feelOverlay'), $('soundOverlay'), $('noteOverlay'), $('aiConfigOverlay')].forEach(ov => {
     ov.addEventListener('click', (e) => {
       if (e.target !== ov) return;
       if (ov === $('breathOverlay')) closeBreath();
@@ -145,20 +163,11 @@ function bindEvents() {
 function start() {
   settleGrowth();
   setRefreshAll(refreshAll);
+  setNoteRefresh(refreshAll);
   bindEvents();
   initParticles();
   setTheme();
   if (getState().muted) setMuted(true);
-  if (!getState().muted) {
-    ensureAudio();
-    const unlock = () => {
-      ensureAudio();
-      document.removeEventListener('pointerdown', unlock);
-      document.removeEventListener('keydown', unlock);
-    };
-    document.addEventListener('pointerdown', unlock);
-    document.addEventListener('keydown', unlock);
-  }
   refreshAll();
   const gr = $('greeting');
   const state = getState();
