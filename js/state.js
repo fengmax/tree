@@ -25,6 +25,7 @@ export function defaultState() {
       noteAt: 0,
       noteReply: '',
       aiReply: '',
+      replyBag: {},
       aiApiKey: '',
       aiBaseUrl: 'https://api.openai.com/v1',
       aiModel: 'gpt-4o-mini',
