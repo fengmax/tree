@@ -41,6 +41,7 @@ export function water() {
   }
   state.waterFill.push({ from: now, until: now + FILL_WINDOW });
   state.lastWaterAt = now;
+  state.waterLog = [...(state.waterLog || []), { t: now }].slice(-400);
   save();
   paintWateringFeedback();
   toast('你轻柔地浇了浇水，土壤喝饱了。');

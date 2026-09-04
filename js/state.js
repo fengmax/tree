@@ -12,6 +12,7 @@ export function defaultState() {
     lastOpen: Date.now(),
     growth: 0,
     waterFill: [],
+    waterLog: [],   // 浇水历史 [{t}]，供年轮视图回看；只增不减（截断 400 条）
     lastWaterAt: 0,
     hearts: [],
     betterStreak: 0,

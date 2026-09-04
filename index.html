@@ -176,7 +176,34 @@
       <p class="diary-empty" id="diaryEmpty" hidden>还没有写过。想写的时候，树一直在。</p>
       <div class="note-actions diary-foot">
         <button class="ghost-btn" id="diaryExportMd">导出 md</button>
+        <button class="ghost-btn" id="yearRingBtn">树的年轮</button>
         <button class="ghost-btn gold" id="diaryClose">收好</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 树的年轮 ===== -->
+  <div class="overlay" id="ringOverlay" role="dialog" aria-modal="true" aria-labelledby="ringTitle" hidden>
+    <div class="diary-card ring-card">
+      <h3 id="ringTitle">树的年轮</h3>
+      <p class="feel-sub diary-meta" id="ringMeta"></p>
+      <div class="ring-tabs" role="group" aria-label="时间范围">
+        <button class="ring-tab" data-win="7" type="button">近 7 天</button>
+        <button class="ring-tab sel" data-win="30" type="button">近 30 天</button>
+        <button class="ring-tab" data-win="90" type="button">近 90 天</button>
+      </div>
+      <div class="ring-frame">
+        <svg id="ringSvg" class="ring-svg" viewBox="0 0 360 212" role="img" aria-label="最近 30 天的成长时间带"></svg>
+      </div>
+      <p class="ring-summary" id="ringSummary" aria-live="polite"></p>
+      <div class="ring-legend">
+        <span class="lg-item"><i class="lg-dot" style="background:#bcd8c2"></i>感受</span>
+        <span class="lg-item"><i class="lg-line" style="background:#7fae7e"></i>写话</span>
+        <span class="lg-item"><i class="lg-dot" style="background:#9cc0de"></i>浇水</span>
+        <span class="lg-item"><i class="lg-dot" style="background:#e3bd57"></i>好一点</span>
+      </div>
+      <div class="note-actions diary-foot">
+        <button class="ghost-btn gold" id="ringClose">收好</button>
       </div>
     </div>
   </div>

@@ -1,6 +1,7 @@
 /* ============================================================
- * 愈合之树 — Canvas 粒子（夜晚星星 + 萤火虫）
+ * 愈合之树 — Canvas 粒子（夜晚星星 + 萤火虫 + 季节小景）
  * 依赖: ui.js, theme.js
+ * 春：蝴蝶与飘落的樱瓣 · 夏：萤火虫 · 秋：落叶 · 冬：雪
  * ============================================================ */
 import { $, reducedMotion } from './ui.js';
 import { isNight } from './theme.js';
@@ -43,15 +44,28 @@ function loopP(ts) {
 function drawMicroEvent(c, ts) {
   const { width: w, height: h } = c.canvas;
   if (!nextMicroEventAt) {
-    nextMicroEventAt = ts + 9000 + Math.random() * 12000;
+    nextMicroEventAt = ts + 6000 + Math.random() * 10000;
     return;
   }
   if (!microEvent && ts >= nextMicroEventAt) {
     const season = [...document.body.classList].find(name => name.startsWith('season-'))?.slice(7) || 'spring';
+    let kind;
+    let duration = 5600;
+    if (season === 'spring') {
+      kind = Math.random() < 0.45 ? 'butterfly' : 'petal';
+    } else if (season === 'autumn') {
+      kind = 'leaf';
+    } else if (season === 'winter') {
+      kind = 'snow';
+      duration = 4600;
+    } else {
+      kind = 'firefly';
+      duration = 7000;
+    }
     microEvent = {
-      kind: season === 'spring' ? 'butterfly' : season === 'autumn' ? 'leaf' : season === 'winter' ? 'snow' : 'firefly',
+      kind,
       start: ts,
-      duration: season === 'spring' ? 6200 : 5200,
+      duration,
       x: Math.random() * w,
       y: h * (.28 + Math.random() * .25),
     };
@@ -64,7 +78,7 @@ function drawMicroEvent(c, ts) {
   const progress = (ts - event.start) / event.duration;
   if (progress >= 1) {
     microEvent = null;
-    nextMicroEventAt = ts + 16000 + Math.random() * 22000;
+    nextMicroEventAt = ts + 11000 + Math.random() * 16000;
     return;
   }
   const fade = Math.min(1, progress * 5, (1 - progress) * 5);
@@ -82,12 +96,18 @@ function drawMicroEvent(c, ts) {
     c.beginPath(); c.ellipse(flap, -2, flap, 5, .35, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#856e61';
     c.fillRect(-.8, -3, 1.6, 7);
-  } else if (event.kind === 'leaf') {
+  } else if (event.kind === 'leaf' || event.kind === 'petal') {
     const x = event.x + Math.sin(progress * Math.PI * 3) * 45;
     const y = -18 + h * .68 * progress;
     c.translate(x, y);
     c.rotate(progress * Math.PI * 3);
-    c.fillStyle = progress < .5 ? '#cc8b55' : '#d4a24d';
+    if (event.kind === 'leaf') {
+      c.fillStyle = progress < .5 ? '#cc8b55' : '#d4a24d';
+    } else {
+      // 樱瓣：粉白小片，比落叶轻
+      c.globalAlpha *= .92;
+      c.fillStyle = progress < .5 ? '#f6d5cc' : '#f0c2bd';
+    }
     c.beginPath(); c.moveTo(0, -6); c.quadraticCurveTo(7, -2, 0, 6); c.quadraticCurveTo(-7, -2, 0, -6); c.fill();
   } else if (event.kind === 'snow') {
     const x = event.x + Math.sin(progress * Math.PI * 2) * 24;

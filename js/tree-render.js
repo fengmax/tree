@@ -6,6 +6,7 @@ import { STAGES, BETTER_NEED } from './config.js';
 import { getState, save } from './state.js';
 import { $, toast } from './ui.js';
 import { stageAt } from './growth.js';
+import { seasonPaletteNow } from './theme.js';
 
 // 颜色插值：把一种十六进制色柔和地过渡到另一种
 function mixHex(a, b, t) {
@@ -43,8 +44,24 @@ function flowerHTMLAt(cx, cy, r, alpha, g) {
   return out;
 }
 
+/* 按当前季节把树冠/花瓣/花心的渐变 stop 刷成对应色板。
+ * SVG defs 的半透明结构不动，只换颜色 → 树随季节换装且平滑过渡 */
+const FOLIAGE_DEFS = { leafG0: 'leaf0', leafG1: 'leaf1', leafG2: 'leaf2', petalA: 'petalA', petalB: 'petalB', heartG: 'heart' };
+function applyFoliageColors() {
+  const { pal } = seasonPaletteNow();
+  for (const defId in FOLIAGE_DEFS) {
+    const g = document.getElementById(defId);
+    if (!g || !g.querySelectorAll) continue;
+    const stops = g.querySelectorAll('stop');
+    const cols = pal[FOLIAGE_DEFS[defId]];
+    for (let i = 0; i < stops.length && i < cols.length; i++) {
+      stops[i].setAttribute('stop-color', cols[i]);
+    }
+  }
+}
+
 function groundLife(g) {
-  const season = [...document.body.classList].find(name => name.startsWith('season-'))?.slice(7) || 'spring';
+  const { season, pal } = seasonPaletteNow();
   const life = Math.max(0, Math.min(1, g / 0.25));
   let out = `<g class="ground-life" opacity="${(0.3 + life * 0.7).toFixed(2)}">`;
 
@@ -52,7 +69,7 @@ function groundLife(g) {
     [92, 403, -18], [112, 407, -10], [208, 406, 12], [229, 402, 20],
   ];
   grass.forEach(([x, y, tilt], i) => {
-    out += `<path class="ground-sway" style="--delay:${i * .35}s" d="M${x},${y} Q${x + tilt * .35},${y - 10} ${x + tilt},${y - 17}" fill="none" stroke="#73966f" stroke-width="1.8" stroke-linecap="round"/>`;
+    out += `<path class="ground-sway" style="--delay:${i * .35}s" d="M${x},${y} Q${x + tilt * .35},${y - 10} ${x + tilt},${y - 17}" fill="none" stroke="${pal.grass}" stroke-width="1.8" stroke-linecap="round"/>`;
   });
 
   out += '<ellipse cx="104" cy="411" rx="6" ry="2.5" fill="#8d8068" opacity=".42"/>';
@@ -103,6 +120,8 @@ function noteLeaf() {
 export function renderTree(g) {
   const root = $('treeRoot');
   if (!root) return;
+
+  applyFoliageColors();
 
   const baseX = 160;
   const soilY = 408;

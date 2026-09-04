@@ -706,3 +706,46 @@ body.season-winter .tree-svg .ground-life { filter: saturate(.65); }
   padding: 4px 8px; font-family: inherit;
 }
 .text-btn:hover { opacity: 1; }
+
+/* ---------- 树的年轮 ---------- */
+.ring-card { width: min(480px, 92vw); }
+.ring-tabs {
+  display: flex; justify-content: center; gap: 8px; margin: -4px 0 14px;
+}
+.ring-tab {
+  border: 1px solid rgba(148,180,154,.4); background: rgba(255,255,255,.5);
+  color: var(--ink-soft); font-family: inherit; font-size: .76rem;
+  padding: 4px 13px; border-radius: 999px; cursor: pointer;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+.ring-tab:hover { border-color: rgba(120,150,125,.7); }
+.ring-tab.sel {
+  background: rgba(122,156,128,.16); border-color: rgba(110,145,116,.75);
+  color: var(--ink);
+}
+.ring-frame {
+  background: rgba(255,255,255,.42);
+  border: 1px solid rgba(190,212,194,.4);
+  border-radius: 14px; padding: 6px 6px 0;
+}
+.ring-svg { display: block; width: 100%; height: auto; }
+.ring-summary {
+  text-align: center; color: var(--ink-soft);
+  font-size: .8rem; line-height: 1.8; margin: 12px 2px 0;
+}
+.ring-top { color: var(--ink); opacity: .92; }
+.ring-legend {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 6px 18px; margin-top: 13px;
+}
+.lg-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .74rem; color: var(--ink-soft); opacity: .88;
+}
+.lg-dot {
+  width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.55);
+}
+.lg-line {
+  width: 9px; height: 1.8px; border-radius: 2px; display: inline-block;
+}

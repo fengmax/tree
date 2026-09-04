@@ -15,6 +15,7 @@ import { openFeel, recordFeel, recordBetter, setRefreshAll } from './feel.js';
 import { gentleWhisper, normalizeGreeting } from './whisper.js';
 import { openNote, saveNote, askAiReply, openAiConfig, saveAiConfig, renderNoteReply, setNoteRefresh } from './note.js';
 import { openDiary, closeDiary, handleDiaryClick, exportMarkdown } from './diary.js';
+import { openYearRing, closeYearRing, setRingWindow } from './yearring.js';
 
 /* ---------------- 刷新 UI ---------------- */
 function refreshAll() {
@@ -104,6 +105,20 @@ function bindEvents() {
   $('diaryClose').addEventListener('click', closeDiary);
   $('diaryExportMd').addEventListener('click', exportMarkdown);
   $('diaryList').addEventListener('click', handleDiaryClick);
+
+  // 树的年轮
+  $('yearRingBtn').addEventListener('click', () => {
+    hideOverlay($('diaryOverlay'));
+    openYearRing();
+  });
+  $('ringClose').addEventListener('click', closeYearRing);
+  document.querySelectorAll('.ring-tab').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.ring-tab').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      setRingWindow(parseInt(b.dataset.win, 10));
+    });
+  });
   $('aiConfigClose').addEventListener('click', () => { hideOverlay($('aiConfigOverlay')); });
   $('aiConfigSave').addEventListener('click', saveAiConfig);
   $('promptDismiss').addEventListener('click', () => { $('dailyPrompt').hidden = true; });
@@ -154,11 +169,12 @@ function bindEvents() {
   $('betterBtn').addEventListener('click', recordBetter);
 
   // 遮罩点空白关闭
-  [$('breathOverlay'), $('feelOverlay'), $('soundOverlay'), $('noteOverlay'), $('diaryOverlay'), $('aiConfigOverlay')].forEach(ov => {
+  [$('breathOverlay'), $('feelOverlay'), $('soundOverlay'), $('noteOverlay'), $('diaryOverlay'), $('ringOverlay'), $('aiConfigOverlay')].forEach(ov => {
     ov.addEventListener('click', (e) => {
       if (e.target !== ov) return;
       if (ov === $('breathOverlay')) closeBreath();
       else if (ov === $('diaryOverlay')) closeDiary();
+      else if (ov === $('ringOverlay')) closeYearRing();
       else hideOverlay(ov);
     });
   });
