@@ -72,7 +72,8 @@ function makeStream(ctx, gainNode) {
 }
 
 function makeBirds(ctx, gainNode) {
-  const g = ctx.createGain(); g.gain.value = 0.0;
+  // 汇总节点：音量由每个 chirp 的 envelope 控制，这里必须是 1（曾误设为 0，导致鸟鸣全程静音）
+  const g = ctx.createGain(); g.gain.value = 1.0;
   g.connect(gainNode);
   let stopped = false;
   function chirp() {
@@ -102,7 +103,8 @@ function makeBirds(ctx, gainNode) {
 }
 
 function makeCrickets(ctx, gainNode) {
-  const g = ctx.createGain(); g.gain.value = 0.0;
+  // 汇总节点：音量由每个 pulse 的 envelope 控制，这里必须是 1（曾误设为 0，导致虫鸣全程静音）
+  const g = ctx.createGain(); g.gain.value = 1.0;
   g.connect(gainNode);
   let stopped = false;
   function pulse() {
@@ -168,7 +170,13 @@ export function stopAmbient() {
 export function ensureAudio() {
   const state = getState();
   if (state.muted) return;
-  if (audioCtx) { startAmbient(); return; }
+  if (audioCtx) {
+    // 已存在时务必 resume：muted 会 suspend()，自动播放策略也会让初始 ctx 停在 suspended，
+    // 少了这步会出现"取消静音后没声音"或"首次点击后仍要再点一次才出声"
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    startAmbient();
+    return;
+  }
   try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
   catch(e){ return; }
   audioCtx.resume && audioCtx.resume();
