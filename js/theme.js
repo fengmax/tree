@@ -30,7 +30,7 @@ export function setTheme() {
     if (h < 6) w.textContent = '夜深了，陪伴你的是一颗安静的树';
     else if (h < 12) w.textContent = '清晨的光透过叶隙，树醒了';
     else if (h < 14) w.textContent = '正午，树影正好歇脚';
-    else if (h < 17) w.textContent = '';
+    else if (h < 17) w.textContent = '午后，风轻轻摇着枝叶';
     else if (h < 19) w.textContent = '黄昏，天边染上温柔的颜色';
     else w.textContent = '夜晚，星星与树的低语';
   }

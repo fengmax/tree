@@ -33,7 +33,7 @@ export function normalizeGreeting() {
   if (h < 6) base = '夜深了，你来了。';
   else if (h < 12) base = '早安，你来了。';
   else if (h < 14) base = '正午好，你来了。';
-  else if (h < 17) base = '午后，风轻轻摇着枝叶';
+  else if (h < 17) base = '午后，你来了。';
   else if (h < 19) base = '黄昏好，你来了。';
   else base = '晚上好，你来了。';
 
