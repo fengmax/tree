@@ -10,6 +10,8 @@ import { $, showOverlay, hideOverlay, toast } from './ui.js';
 
 const MAX_TEXT = 42;
 const NO_COLOR = 'rgba(120,140,125,.26)';
+const PAGE = 40;          // 每次渲染的条目数，日记多了也不卡
+let _limit = PAGE;        // 当前已展开的条目上限
 
 /* ---------------- 数据层 ---------------- */
 
@@ -74,10 +76,11 @@ export function ensureEntry(text, reply) {
 
 function dayKey(ts) { return new Date(ts).toDateString(); }
 
-function moodAt(ts) {
-  const feels = getState().feels || [];
-  const key = dayKey(ts);
-  return feels.find(f => dayKey(f.t) === key) || null;
+/* 预构建 日期→情绪 映射：渲染 N 条只需 O(N)，不再每条遍历全量 feels */
+function buildMoodMap() {
+  const map = {};
+  for (const f of getState().feels || []) map[dayKey(f.t)] = f;
+  return map;
 }
 
 function fmtDate(ts) {
@@ -95,13 +98,12 @@ function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ESCAPES[c]);
 }
 
-function itemHtml(e) {
-  const m = moodAt(e.at);
+function itemHtml(e, mood) {
   const reply = e.aiReply || e.reply || '';
   return `<div class="diary-item">
-      <span class="diary-dot" style="--c:${m ? escapeHtml(m.color) : NO_COLOR}"></span>
+      <span class="diary-dot" style="--c:${mood ? escapeHtml(mood.color) : NO_COLOR}"></span>
       <div class="diary-body">
-        <p class="diary-date">${fmtDate(e.at)}${m ? ' · ' + escapeHtml(m.label) : ''}</p>
+        <p class="diary-date">${fmtDate(e.at)}${mood ? ' · ' + escapeHtml(mood.label) : ''}</p>
         <p class="diary-text">${escapeHtml(e.text)}</p>
         ${reply ? `<p class="diary-reply">树：${escapeHtml(reply)}</p>` : ''}
       </div>
@@ -109,7 +111,9 @@ function itemHtml(e) {
     </div>`;
 }
 
-export function renderDiary() {
+/* reset=true 或省略：回到最新一页；false：在当前位置继续展开更早 */
+export function renderDiary(reset) {
+  if (reset !== false) _limit = PAGE;
   const list = $('diaryList');
   if (!list) return;
   const all = entryList();
@@ -132,16 +136,21 @@ export function renderDiary() {
   }
   if (empty) empty.hidden = true;
 
+  const moodMap = buildMoodMap();
   const desc = all.slice().sort((a, b) => b.at - a.at);
+  const shown = desc.slice(0, _limit);
   const groups = [];
-  for (const e of desc) {
+  for (const e of shown) {
     const key = fmtMonth(e.at);
     if (!groups.length || groups[groups.length - 1].key !== key) groups.push({ key, items: [] });
     groups[groups.length - 1].items.push(e);
   }
-  list.innerHTML = groups.map(g =>
-    `<p class="diary-month">${escapeHtml(g.key)} · ${g.items.length} 篇</p>${g.items.map(itemHtml).join('')}`
+  let html = groups.map(g =>
+    `<p class="diary-month">${escapeHtml(g.key)} · ${g.items.length} 篇</p>${g.items.map(e => itemHtml(e, moodMap[dayKey(e.at)] || null)).join('')}`
   ).join('');
+  const rest = desc.length - shown.length;
+  if (rest > 0) html += `<button class="diary-more" data-action="more">更早的还有 ${rest} 篇 · 再看看</button>`;
+  list.innerHTML = html;
 }
 
 export function openDiary() {
@@ -153,20 +162,26 @@ export function closeDiary() {
   hideOverlay($('diaryOverlay'));
 }
 
-/* 删除：事件委托，两次点击确认（不打断的原生 confirm） */
+/* 列表内点击：加载更早 / 删除（两次点击确认） */
 export function handleDiaryClick(e) {
-  const del = e.target.closest && e.target.closest('.diary-del');
+  const t = e.target;
+  if (t.closest && t.closest('[data-action="more"]')) {
+    _limit += PAGE;
+    renderDiary(false);
+    return;
+  }
+  const del = t.closest && t.closest('.diary-del');
   if (!del) return;
   const id = del.dataset.id;
   if (!entryList().some(x => x.id === id)) return;
   if (!del.classList.contains('pending')) {
     del.classList.add('pending');
-    del.textContent = '确定？';
+    del.textContent = '确定删除？';
     setTimeout(() => { del.classList.remove('pending'); del.textContent = '×'; }, 2600);
     return;
   }
   deleteEntry(id);
-  renderDiary();
+  renderDiary(false);
   toast('已经删掉了。');
 }
 
@@ -196,11 +211,12 @@ function ascending() {
 
 function toMarkdown() {
   const lines = ['# 愈合之树 · 我写给自己的话', '', `> 导出于 ${new Date().toLocaleString('zh-CN')}`, ''];
+  const moodMap = buildMoodMap();
   let lastMonth = '';
   for (const e of ascending()) {
     const key = fmtMonth(e.at);
     if (key !== lastMonth) { lines.push('', `## ${key}`, ''); lastMonth = key; }
-    const m = moodAt(e.at);
+    const m = moodMap[dayKey(e.at)];
     lines.push(`### ${fmtDate(e.at)}${m ? ' · ' + m.label : ''}`, '', e.text, '');
     const reply = e.aiReply || e.reply;
     if (reply) lines.push(`> 树：${reply}`, '');
