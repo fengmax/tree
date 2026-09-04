@@ -41,18 +41,19 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// 网络优先：改完代码刷新即可生效（原为缓存优先，导致旧版 js 被永久锁在缓存里）
+// 离线时 fetch 失败则回退缓存，仍可离线使用
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(resp => {
-        if (resp.ok && e.request.url.startsWith(self.location.origin)) {
-          const clone = resp.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return resp;
-      }).catch(() => cached);
-    })
+    fetch(e.request).then(resp => {
+      if (resp.ok && e.request.url.startsWith(self.location.origin)) {
+        const clone = resp.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+      }
+      return resp;
+    }).catch(() =>
+      caches.match(e.request).then(cached => cached || caches.match('./'))
+    )
   );
 });

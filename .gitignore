@@ -1,2 +1,8 @@
 screenshot.png
 .env
+
+# 本地运行日志（oc_ui.log 曾被误提交进仓库）
+*.log
+
+# 项目/工具数据目录
+.workbuddy/
