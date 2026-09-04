@@ -1,5 +1,5 @@
 // 愈合之树 Service Worker — 离线缓存（v2 模块化）
-const CACHE = 'healing-tree-v18';
+const CACHE = 'healing-tree-v19';
 const PRECACHE = [
   './',
   './index.html',

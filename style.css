@@ -403,8 +403,16 @@ body.theme-night .dock-btn {
 }
 .config-input:focus { border-color: var(--green-2); box-shadow: 0 0 0 3px rgba(148,180,154,.2); }
 .config-warning { margin: 10px 0 0; color: var(--ink-soft); opacity: .68; font-size: .68rem; line-height: 1.5; }
-.note-leaf { transform-origin: 187px 359px; animation: leafAppear .8s var(--ease-out) both; }
-@keyframes leafAppear { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: scale(1); } }
+/* 留言叶：从土边缓缓浮起、旋正，落到枝头（D 档动作余韵） */
+.note-leaf {
+  transform-origin: 187px 359px;
+  animation: noteFly 1.9s var(--ease-out) both;
+}
+@keyframes noteFly {
+  0% { opacity: 0; transform: translateY(64px) rotate(-12deg) scale(.86); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
+}
 .vol-row { display: flex; align-items: center; gap: 12px; margin: 0 4px 18px; }
 .vol-label { font-size: .84rem; color: var(--ink-soft); flex: none; }
 .vol-slider {
@@ -788,4 +796,30 @@ body.season-winter {
 }
 .lg-line {
   width: 9px; height: 1.8px; border-radius: 2px; display: inline-block;
+}
+
+/* ---------- B 档：一阵风（偶发低频，树与草统一响应） ---------- */
+body.wind-gust .tree-life { animation: gustSway 3.4s var(--ease-out); }
+body.wind-gust .ground-sway { animation: grassGust 3.4s var(--ease-out); }
+body.wind-gust .falling-leaf { animation-duration: 1.6s; }
+@keyframes gustSway {
+  0%   { transform: rotate(0deg); }
+  12%  { transform: rotate(-2.6deg) translateY(-1px); }
+  45%  { transform: rotate(-1.4deg); }
+  70%  { transform: rotate(.8deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes grassGust {
+  0%, 100% { transform: rotate(-2deg); }
+  25% { transform: rotate(-9deg); }
+  60% { transform: rotate(4deg); }
+}
+
+/* ---------- D 档：浇水后树冠轻轻一颤（复用 body.watering 类，零 JS） ---------- */
+body.watering .tree-life { animation: splashShake .9s ease-out; }
+@keyframes splashShake {
+  0%   { transform: rotate(0deg); }
+  30%  { transform: rotate(-1.3deg); }
+  65%  { transform: rotate(.9deg); }
+  100% { transform: rotate(0deg); }
 }

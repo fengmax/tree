@@ -113,8 +113,9 @@ function noteLeaf() {
   const last = list.length ? list[list.length - 1] : null;
   const text = ((last && last.text) || state.noteText || '').trim();
   if (!text) return '';
+  const { pal } = seasonPaletteNow();
   const short = text.length > 9 ? text.slice(0, 9) + '…' : text;
-  return `<g class="note-leaf"><title>${text.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</title><path d="M173 359 C188 345 202 351 204 365 C190 370 180 367 173 359Z" fill="#bdd8a9" opacity=".92"/><path d="M176 360 Q188 359 200 357" fill="none" stroke="#7eaa78" stroke-width=".8" opacity=".7"/><text x="187" y="362" text-anchor="middle" font-size="3.6" fill="#4c7055">${short.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</text></g>`;
+  return `<g class="note-leaf"><title>${text.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</title><path d="M173 359 C188 345 202 351 204 365 C190 370 180 367 173 359Z" fill="${pal.leaf1[1]}" opacity=".92"/><path d="M176 360 Q188 359 200 357" fill="none" stroke="#7eaa78" stroke-width=".8" opacity=".7"/><text x="187" y="362" text-anchor="middle" font-size="3.6" fill="#4c7055">${short.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</text></g>`;
 }
 
 export function renderTree(g) {
