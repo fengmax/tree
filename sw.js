@@ -1,5 +1,5 @@
 // 愈合之树 Service Worker — 离线缓存（v2 模块化）
-const CACHE = 'healing-tree-v19';
+const CACHE = 'healing-tree-v20';
 const PRECACHE = [
   './',
   './index.html',
@@ -44,12 +44,22 @@ self.addEventListener('activate', (e) => {
   );
 });
 
-// 网络优先：改完代码刷新即可生效（原为缓存优先，导致旧版 js 被永久锁在缓存里）
-// 离线时 fetch 失败则回退缓存，仍可离线使用
+// 网络优先 + 超时兜底：github.io 在国内偶发连接挂起（几分钟不返回），
+// 若一直等网络，页面 import 链会卡住 → 标签页永远转圈。
+// 4 秒拿不到网络响应就回退缓存：网络好时照常更新，网络抖时页面秒开。
+function fetchWithTimeout(req, ms) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  return fetch(req, { signal: ctl.signal }).then(
+    resp => { clearTimeout(timer); return resp; },
+    err => { clearTimeout(timer); throw err; }
+  );
+}
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request).then(resp => {
+    fetchWithTimeout(e.request, 4000).then(resp => {
       if (resp.ok && e.request.url.startsWith(self.location.origin)) {
         const clone = resp.clone();
         caches.open(CACHE).then(c => c.put(e.request, clone));
