@@ -63,7 +63,7 @@ export function saveNote() {
     toast('想写的时候再写，也可以。');
     return;
   }
-  const noteText = text.slice(0, 42);
+  const noteText = text.slice(0, 500);
   // 5 分钟内同文本视为同一条（「和树聊聊」可能已把它存档），避免重复建档
   const entry = ensureEntry(noteText, replyFor(noteText));
   // 若这条还没有任何回应，补一句本地回应；已有 AI 回应则保留
@@ -99,7 +99,7 @@ export async function askAiReply() {
         max_tokens: 120,
         messages: [
           { role: 'system', content: '你是一个安静、温柔的树形陪伴者。只用简体中文回应一句到两句。接住用户的感受，不诊断、不说教、不强行积极、不连续追问，不提供医疗或危机判断。不要声称自己真正理解用户的人生。' },
-          { role: 'user', content: text.slice(0, 42) },
+          { role: 'user', content: text.slice(0, 500) },
         ],
       }),
     });
@@ -107,7 +107,7 @@ export async function askAiReply() {
     const reply = result?.choices?.[0]?.message?.content?.trim();
     if (!response.ok || !reply) throw new Error(result.error?.message || 'AI response failed');
     // 存进日记本：即便没点过「让树回应」，这句话也要留下
-    const entry = ensureEntry(text, replyFor(text.slice(0, 42)));
+    const entry = ensureEntry(text, replyFor(text.slice(0, 500)));
     updateEntry(entry.id, { aiReply: reply.slice(0, 180) });
     setState({ noteText: '', noteAt: 0, noteReply: '', aiReply: '' });
     save();

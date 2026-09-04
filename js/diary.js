@@ -8,7 +8,7 @@
 import { getState, setState, save } from './state.js';
 import { $, showOverlay, hideOverlay, toast } from './ui.js';
 
-const MAX_TEXT = 42;
+const MAX_TEXT = 500;
 const NO_COLOR = 'rgba(120,140,125,.26)';
 const PAGE = 40;          // 每次渲染的条目数，日记多了也不卡
 let _limit = PAGE;        // 当前已展开的条目上限
@@ -99,13 +99,11 @@ function escapeHtml(s) {
 }
 
 function itemHtml(e, mood) {
-  const reply = e.aiReply || e.reply || '';
   return `<div class="diary-item">
       <span class="diary-dot" style="--c:${mood ? escapeHtml(mood.color) : NO_COLOR}"></span>
       <div class="diary-body">
         <p class="diary-date">${fmtDate(e.at)}${mood ? ' · ' + escapeHtml(mood.label) : ''}</p>
         <p class="diary-text">${escapeHtml(e.text)}</p>
-        ${reply ? `<p class="diary-reply">树：${escapeHtml(reply)}</p>` : ''}
       </div>
       <button class="diary-del" data-id="${escapeHtml(e.id)}" aria-label="删掉这一篇" title="删掉这一篇">×</button>
     </div>`;
@@ -218,8 +216,6 @@ function toMarkdown() {
     if (key !== lastMonth) { lines.push('', `## ${key}`, ''); lastMonth = key; }
     const m = moodMap[dayKey(e.at)];
     lines.push(`### ${fmtDate(e.at)}${m ? ' · ' + m.label : ''}`, '', e.text, '');
-    const reply = e.aiReply || e.reply;
-    if (reply) lines.push(`> 树：${reply}`, '');
   }
   return lines.join('\n');
 }
@@ -228,16 +224,4 @@ export function exportMarkdown() {
   if (!entryList().length) { toast('还没有写过，没什么可导出的。'); return; }
   download(`愈合之树-日记-${stamp()}.md`, toMarkdown(), 'text/markdown');
   toast('已导出，收好它。');
-}
-
-export function exportJson() {
-  if (!entryList().length) { toast('还没有写过，没什么可备份的。'); return; }
-  const data = {
-    app: 'healing-tree',
-    exportedAt: new Date().toISOString(),
-    entries: ascending(),
-    feels: getState().feels || [],
-  };
-  download(`愈合之树-备份-${stamp()}.json`, JSON.stringify(data, null, 2), 'application/json');
-  toast('备份已导出，留着以后还能看。');
 }

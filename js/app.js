@@ -14,7 +14,7 @@ import { openBreathWithAudio, closeBreath } from './breath.js';
 import { openFeel, recordFeel, recordBetter, setRefreshAll } from './feel.js';
 import { gentleWhisper, normalizeGreeting } from './whisper.js';
 import { openNote, saveNote, askAiReply, openAiConfig, saveAiConfig, renderNoteReply, setNoteRefresh } from './note.js';
-import { openDiary, closeDiary, handleDiaryClick, exportMarkdown, exportJson } from './diary.js';
+import { openDiary, closeDiary, handleDiaryClick, exportMarkdown } from './diary.js';
 
 /* ---------------- 刷新 UI ---------------- */
 function refreshAll() {
@@ -103,7 +103,6 @@ function bindEvents() {
   $('diaryBtn').addEventListener('click', openDiary);
   $('diaryClose').addEventListener('click', closeDiary);
   $('diaryExportMd').addEventListener('click', exportMarkdown);
-  $('diaryExportJson').addEventListener('click', exportJson);
   $('diaryList').addEventListener('click', handleDiaryClick);
   $('aiConfigClose').addEventListener('click', () => { hideOverlay($('aiConfigOverlay')); });
   $('aiConfigSave').addEventListener('click', saveAiConfig);
