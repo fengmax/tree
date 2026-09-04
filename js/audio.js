@@ -146,8 +146,9 @@ export function startAmbient() {
   try {
     const type = resolveSoundType();
     const nodes = [];
-    nodes.push(makeWind(audioCtx, masterGain));
-    if (type === 'rain') nodes.push(makeRain(audioCtx, masterGain));
+    // 风声不再作为所有模式的底噪，只在明确选择「风声」时播放
+    if (type === 'wind') nodes.push(makeWind(audioCtx, masterGain));
+    else if (type === 'rain') nodes.push(makeRain(audioCtx, masterGain));
     else if (type === 'stream') nodes.push(makeStream(audioCtx, masterGain));
     else if (type === 'birds') nodes.push(makeBirds(audioCtx, masterGain));
     else if (type === 'crickets') nodes.push(makeCrickets(audioCtx, masterGain));
