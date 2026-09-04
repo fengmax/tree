@@ -18,9 +18,9 @@ export function gentleWhisper() {
     text = '树已成荫。谢谢你陪它这么久。';
   } else if (totalBetter >= BETTER_NEED) {
     text = '树梢的金果，是你一天天攒下的温柔。';
-  } else text = '慢慢来，树会知道的。';
+  }
   const qn = $('quietNote');
-  if (qn) { qn.textContent = text; qn.hidden = false; }
+  if (qn) { qn.textContent = text; qn.hidden = !text; }
 }
 
 export function normalizeGreeting() {
@@ -33,16 +33,16 @@ export function normalizeGreeting() {
   if (h < 6) base = '夜深了，你来了。';
   else if (h < 12) base = '早安，你来了。';
   else if (h < 14) base = '正午好，你来了。';
-  else if (h < 17) base = '午后，你来了。';
+  else if (h < 17) base = '午后，风轻轻摇着枝叶';
   else if (h < 19) base = '黄昏好，你来了。';
   else base = '晚上好，你来了。';
 
   if (state.growth >= 1) {
     base = '你来了，树已成荫。';
   } else if (stage.key === 'fruit' || stage.key === 'canopy') {
-    base += ' 树结果了。';
+    base = (base ? base + ' ' : '') + '树结果了。';
   } else if (stage.key === 'bloom') {
-    base += ' 树开花了。';
+    base = (base ? base + ' ' : '') + '树开花了。';
   }
 
   if (days === 1) base = '第一天，你来了。';
