@@ -19,7 +19,7 @@ let nextMicroEventAt = 0;
 
 /* ---------------- 常驻层配置（导出供测试） ---------------- */
 const AMBIENT_CFG = {
-  spring: { kind: 'petal', count: 2 },
+  spring: { kind: 'petal', count: 5 },
   summer: { kind: null, count: 0 },   // 夏天安静，只有夜里偶来的萤火虫
   autumn: { kind: 'leaf', count: 5 },
   winter: { kind: 'snow', count: 6 },
@@ -37,7 +37,8 @@ function currentSeason() {
 function isWindy() { return document.body.classList.contains('wind-gust'); }
 function isNightNow() { return document.body.classList.contains('theme-night'); }
 
-/* 飘落物颜色：取树自己的季节色板（金果色/花心/霜色由各自分支处理） */
+/* 飘落物颜色：取树自己的季节色板（金果色/花心/霜色由各自分支处理）。
+ * 注意花瓣取 [1] 中档色 —— [0] 是白粉色，在浅色天空下几乎隐形 */
 function ambientColor(kind) {
   const { pal } = seasonPaletteNow();
   if (kind === 'leaf') return Math.random() < .5 ? pal.leaf1[1] : pal.leaf2[1];
@@ -63,7 +64,7 @@ function spawnAmbient(kind, h, fillTop) {
     base.w = .5 + Math.random() * .7;
   } else {
     base.vy = h * (.048 + Math.random() * .016);   // 一片叶 ~15-22s 落完
-    base.size = 5.5 + Math.random() * 3;           // 半高
+    base.size = 6.5 + Math.random() * 3.2;         // 半高
     base.amp = 22 + Math.random() * 22;
     base.w = .6 + Math.random() * .8;
     base.rotSpd = (.35 + Math.random() * .5) * (Math.random() < .5 ? -1 : 1);
@@ -80,7 +81,7 @@ function drawFallen(c, p, ts) {
   const alpha = Math.min(1, y / 70, (h - y) / 120);
   if (alpha <= 0.02) return;
   c.save();
-  c.globalAlpha = p.kind === 'petal' ? alpha * .9 : alpha * .85;
+  c.globalAlpha = p.kind === 'petal' ? alpha * .95 : p.kind === 'snow' ? alpha * .8 : alpha * .9;
   if (p.kind === 'snow') {
     c.fillStyle = p.color;
     c.beginPath(); c.arc(x, y, p.size, 0, Math.PI * 2); c.fill();
